@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings.quicksettings
 
+import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
@@ -17,10 +18,10 @@ import io.reactivex.Observable
 import io.reactivex.Observer
 import io.reactivex.functions.Consumer
 import mozilla.components.feature.sitepermissions.SitePermissions
+import mozilla.components.feature.sitepermissions.SitePermissions.Status.BLOCKED
 import mozilla.components.feature.sitepermissions.SitePermissions.Status.NO_DECISION
 import mozilla.components.support.ktx.android.net.hostWithoutCommonPrefixes
 import mozilla.components.support.ktx.kotlin.toUri
-import org.mozilla.fenix.DefaultThemeManager
 import org.mozilla.fenix.R
 import org.mozilla.fenix.mvi.UIView
 import org.mozilla.fenix.settings.PhoneFeature
@@ -42,7 +43,8 @@ class QuickSettingsUIView(
     private val securityInfoLabel: TextView
     private val urlLabel: TextView
     private val trackingProtectionSwitch: Switch
-    private val reportProblemAction: TextView
+    private val trackingProtectionAction: TextView
+    private val reportSiteIssueAction: TextView
     private val cameraActionLabel: TextView
     private val cameraLabel: TextView
     private val microphoneActionLabel: TextView
@@ -59,7 +61,8 @@ class QuickSettingsUIView(
         urlLabel = view.findViewById<AppCompatTextView>(R.id.url)
         securityInfoLabel = view.findViewById<AppCompatTextView>(R.id.security_info)
         trackingProtectionSwitch = view.findViewById(R.id.tracking_protection)
-        reportProblemAction = view.findViewById(R.id.report_problem)
+        trackingProtectionAction = view.findViewById(R.id.tracking_protection_action)
+        reportSiteIssueAction = view.findViewById(R.id.report_site_issue_action)
         cameraActionLabel = view.findViewById<AppCompatTextView>(R.id.camera_action_label)
         cameraLabel = view.findViewById<AppCompatTextView>(R.id.camera_icon)
         microphoneActionLabel = view.findViewById<AppCompatTextView>(R.id.microphone_action_label)
@@ -75,19 +78,16 @@ class QuickSettingsUIView(
             is QuickSettingsState.Mode.Normal -> {
                 bindUrl(state.mode.url)
                 bindSecurityInfo(state.mode.isSecured)
-                bindReportProblemAction(state.mode.url)
+                bindReportSiteIssueAction(state.mode.url)
+                bindTrackingProtectionAction()
                 bindTrackingProtectionInfo(state.mode.isTrackingProtectionOn)
-                bindPhoneFeatureItem(cameraActionLabel, CAMERA, state.mode.sitePermissions)
-                bindPhoneFeatureItem(microphoneActionLabel, MICROPHONE, state.mode.sitePermissions)
-                bindPhoneFeatureItem(notificationActionLabel, NOTIFICATION, state.mode.sitePermissions)
-                bindPhoneFeatureItem(locationActionLabel, LOCATION, state.mode.sitePermissions)
+                bindPhoneFeatureItem(CAMERA, state.mode.sitePermissions)
+                bindPhoneFeatureItem(MICROPHONE, state.mode.sitePermissions)
+                bindPhoneFeatureItem(NOTIFICATION, state.mode.sitePermissions)
+                bindPhoneFeatureItem(LOCATION, state.mode.sitePermissions)
             }
             is QuickSettingsState.Mode.ActionLabelUpdated -> {
-                bindPhoneFeatureItem(
-                    state.mode.phoneFeature.labelAndAction.second,
-                    state.mode.phoneFeature,
-                    state.mode.sitePermissions
-                )
+                bindPhoneFeatureItem(state.mode.phoneFeature, state.mode.sitePermissions)
             }
             is QuickSettingsState.Mode.CheckPendingFeatureBlockedByAndroid -> {
                 checkFeaturesBlockedByAndroid(state.mode.sitePermissions)
@@ -100,19 +100,14 @@ class QuickSettingsUIView(
     }
 
     private fun bindTrackingProtectionInfo(isTrackingProtectionOn: Boolean) {
+        val globalTPSetting = Settings.getInstance(context).shouldUseTrackingProtection
         val drawableId =
             if (isTrackingProtectionOn) R.drawable.ic_tracking_protection else
                 R.drawable.ic_tracking_protection_disabled
-        val drawableTint = if (isTrackingProtectionOn) DefaultThemeManager.resolveAttribute(
-            R.attr.primaryText,
-            context
-        ) else DefaultThemeManager.resolveAttribute(R.attr.neutral, context)
         val icon = AppCompatResources.getDrawable(context, drawableId)
-        val resolvedColor = ContextCompat.getColor(context, drawableTint)
-        icon?.setTint(resolvedColor)
-        trackingProtectionSwitch.setTextColor(resolvedColor)
         trackingProtectionSwitch.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
         trackingProtectionSwitch.isChecked = isTrackingProtectionOn
+        trackingProtectionSwitch.isEnabled = globalTPSetting
 
         trackingProtectionSwitch.setOnCheckedChangeListener { _, isChecked ->
             actionEmitter.onNext(
@@ -123,8 +118,18 @@ class QuickSettingsUIView(
         }
     }
 
-    private fun bindReportProblemAction(url: String) {
-        reportProblemAction.setOnClickListener {
+    private fun bindTrackingProtectionAction() {
+        val globalTPSetting = Settings.getInstance(context).shouldUseTrackingProtection
+        trackingProtectionAction.visibility = if (globalTPSetting) View.GONE else View.VISIBLE
+        trackingProtectionAction.setOnClickListener {
+            actionEmitter.onNext(
+                QuickSettingsAction.SelectTrackingProtectionSettings
+            )
+        }
+    }
+
+    private fun bindReportSiteIssueAction(url: String) {
+        reportSiteIssueAction.setOnClickListener {
             actionEmitter.onNext(
                 QuickSettingsAction.SelectReportProblem(url)
             )
@@ -152,20 +157,16 @@ class QuickSettingsUIView(
         securityInfoLabel.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
     }
 
-    private fun bindPhoneFeatureItem(
-        actionLabel: TextView,
-        phoneFeature: PhoneFeature,
-        sitePermissions: SitePermissions? = null
-    ) {
+    private fun bindPhoneFeatureItem(phoneFeature: PhoneFeature, sitePermissions: SitePermissions? = null) {
         if (phoneFeature.shouldBeHidden(sitePermissions)) {
             hide(phoneFeature)
             return
         }
         show(phoneFeature)
         if (!phoneFeature.isAndroidPermissionGranted(context)) {
-            handleBlockedByAndroidAction(actionLabel, phoneFeature)
+            handleBlockedByAndroidAction(phoneFeature)
         } else {
-            bindPhoneAction(actionLabel, phoneFeature, sitePermissions)
+            bindPhoneAction(phoneFeature, sitePermissions)
         }
     }
 
@@ -185,10 +186,16 @@ class QuickSettingsUIView(
         return getStatus(sitePermissions, settings) == NO_DECISION
     }
 
-    private fun handleBlockedByAndroidAction(actionLabel: TextView, phoneFeature: PhoneFeature) {
-        actionLabel.setText(R.string.phone_feature_blocked_by_android)
-        actionLabel.tag = phoneFeature
-        actionLabel.setOnClickListener {
+    private fun PhoneFeature.isPermissionBlocked(sitePermissions: SitePermissions?): Boolean {
+        return getStatus(sitePermissions, settings) == BLOCKED
+    }
+
+    private fun handleBlockedByAndroidAction(phoneFeature: PhoneFeature) {
+        val (label, action) = phoneFeature.labelAndAction
+
+        action.setText(R.string.phone_feature_blocked_by_android)
+        action.tag = phoneFeature
+        action.setOnClickListener {
             val feature = it.tag as PhoneFeature
             actionEmitter.onNext(
                 QuickSettingsAction.SelectBlockedByAndroid(
@@ -196,27 +203,37 @@ class QuickSettingsUIView(
                 )
             )
         }
+        label.setCompoundDrawablesWithIntrinsicBounds(phoneFeature.disabledIcon, null, null, null)
+        label.isEnabled = false
         blockedByAndroidPhoneFeatures.add(phoneFeature)
     }
 
-    private fun bindPhoneAction(
-        actionLabel: TextView,
-        phoneFeature: PhoneFeature,
-        sitePermissions: SitePermissions? = null
-    ) {
-        actionLabel.text = phoneFeature.getActionLabel(
+    private fun bindPhoneAction(phoneFeature: PhoneFeature, sitePermissions: SitePermissions? = null) {
+        val (label, action) = phoneFeature.labelAndAction
+
+        action.text = phoneFeature.getActionLabel(
             context = context,
             sitePermissions = sitePermissions,
             settings = settings
         )
 
-        actionLabel.tag = phoneFeature
-        actionLabel.setOnClickListener {
+        action.tag = phoneFeature
+        action.setOnClickListener {
             val feature = it.tag as PhoneFeature
             actionEmitter.onNext(
                 QuickSettingsAction.TogglePermission(feature)
             )
         }
+
+        val icon = if (phoneFeature.isPermissionBlocked(sitePermissions)) {
+            label.isEnabled = false
+            phoneFeature.disabledIcon
+        } else {
+            label.isEnabled = true
+            phoneFeature.enabledIcon
+        }
+
+        label.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
         blockedByAndroidPhoneFeatures.remove(phoneFeature)
     }
 
@@ -224,8 +241,7 @@ class QuickSettingsUIView(
         val clonedList = blockedByAndroidPhoneFeatures.toTypedArray()
         clonedList.forEach { phoneFeature ->
             if (phoneFeature.isAndroidPermissionGranted(context)) {
-                val actionLabel = phoneFeature.labelAndAction.second
-                bindPhoneAction(actionLabel, phoneFeature, sitePermissions)
+                bindPhoneAction(phoneFeature, sitePermissions)
             }
         }
     }
@@ -238,5 +254,27 @@ class QuickSettingsUIView(
                 MICROPHONE -> microphoneLabel to microphoneActionLabel
                 NOTIFICATION -> notificationLabel to notificationActionLabel
             }
+        }
+
+    private val PhoneFeature.enabledIcon
+        get(): Drawable {
+            val drawableId = when (this) {
+                CAMERA -> R.drawable.ic_camera
+                LOCATION -> R.drawable.ic_location
+                MICROPHONE -> R.drawable.ic_microphone
+                NOTIFICATION -> R.drawable.ic_notification
+            }
+            return requireNotNull(AppCompatResources.getDrawable(context, drawableId))
+        }
+
+    private val PhoneFeature.disabledIcon
+        get(): Drawable {
+            val drawableId = when (this) {
+                CAMERA -> R.drawable.ic_camera_disabled
+                LOCATION -> R.drawable.ic_location_disabled
+                MICROPHONE -> R.drawable.ic_microphone_disabled
+                NOTIFICATION -> R.drawable.ic_notifications_disabled
+            }
+            return requireNotNull(AppCompatResources.getDrawable(context, drawableId))
         }
 }

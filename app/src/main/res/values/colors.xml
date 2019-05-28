@@ -6,52 +6,80 @@
     <!-- Light theme color palette -->
     <color name="primary_text_light_theme">#20123A</color>
     <color name="secondary_text_light_theme">@color/photonGrey50</color>
+    <color name="contrast_text_light_theme">@color/primary_text_dark_theme</color>
     <color name="foundation_light_theme">#F9F9FB</color>
+    <color name="inset_light_theme">#F2F2F5</color>
     <color name="above_light_theme">#FFF</color>
-    <color name="above_darkened_light_theme">#F2F2F5</color>
     <color name="accent_light_theme">#312A65</color>
     <color name="accent_bright_light_theme">#592ACB</color>
-    <color name="neutral_light_theme">@color/photonGrey20</color>
+    <color name="accent_high_contrast_light_theme">@color/accent_light_theme</color>
+    <color name="neutral_light_theme">@color/photonGrey30</color>
+    <color name="neutral_faded_light_theme">@color/photonGrey20</color>
+    <color name="shadow_light_theme">#1F000000</color>
+    <color name="destructive_light_theme">#C50042</color>
+    <color name="scrimStart_light_theme">#F515141A</color>
+    <color name="scrimEnd_light_theme">#F542414D</color>
 
     <!-- Dark theme color palette -->
     <color name="primary_text_dark_theme">#FBFBFE</color>
-    <color name="secondary_text_dark_theme">#A4A3AA</color>
+    <color name="secondary_text_dark_theme">#A7A2B7</color>
+    <color name="contrast_text_dark_theme">@color/primary_text_light_theme</color>
     <color name="foundation_dark_theme">#1C1B22</color>
+    <color name="inset_dark_theme">#3F3E46</color>
     <color name="above_dark_theme">#32313C</color>
-    <color name="above_darkened_dark_theme">#252432</color>
-    <color name="accent_dark_theme">#312A65</color>
-    <color name="accent_bright_dark_theme">#AB71FF</color>
-    <color name="neutral_dark_theme">@color/photonGrey40</color>
+    <color name="accent_dark_theme">#E6E6EA</color>
+    <color name="accent_bright_dark_theme">#592ACB</color>
+    <color name="accent_high_contrast_dark_theme">#AB71FF</color>
+    <color name="neutral_dark_theme">@color/photonGrey20</color>
+    <color name="neutral_faded_dark_theme">#1FEDEDF0</color>
+    <color name="shadow_dark_theme">#050505</color>
+    <color name="destructive_dark_theme">#FF6A75</color>
+    <color name="scrimStart_dark_theme">#F520123A</color>
+    <color name="scrimEnd_dark_theme">#F515141A</color>
 
     <!-- Private theme color palette -->
     <color name="primary_text_private_theme">#FBFBFE</color>
-    <color name="secondary_text_private_theme">#A4A3AA</color>
-    <color name="foundation_private_theme">#242251</color>
-    <color name="above_private_theme">#393862</color>
-    <color name="above_darkened_private_theme">#2c2b58</color>
-    <color name="accent_private_theme">#AD3BFF</color>
-    <color name="accent_bright_private_theme">#AD3BFF</color>
-    <color name="neutral_private_theme">@color/photonGrey40</color>
+    <color name="secondary_text_private_theme">#A7A2B7</color>
+    <color name="contrast_text_private_theme">@color/primary_text_light_theme</color>
+    <color name="foundation_private_theme">#1D1133</color>
+    <color name="inset_private_theme">#362A5C</color>
+    <color name="above_private_theme">#291D4F</color>
+    <color name="accent_private_theme">#E6E6EA</color>
+    <color name="accent_bright_private_theme">#AA71FF</color>
+    <color name="accent_high_contrast_private_theme">#AA71FF</color>
+    <color name="neutral_private_theme">@color/photonGrey20</color>
+    <color name="neutral_faded_private_theme">#1FEDEDF0</color>
+    <color name="shadow_private_theme">#2B1067</color>
+    <color name="destructive_private_theme">#FF6A75</color>
+    <color name="scrimStart_private_theme">#F520123A</color>
+    <color name="scrimEnd_private_theme">#F515141A</color>
 
     <!-- Normal theme colors for light mode -->
     <color name="primary_text_normal_theme">@color/primary_text_light_theme</color>
     <color name="secondary_text_normal_theme">@color/secondary_text_light_theme</color>
+    <color name="contrast_text_normal_theme">@color/contrast_text_light_theme</color>
     <color name="foundation_normal_theme">@color/foundation_light_theme</color>
     <color name="above_normal_theme">@color/above_light_theme</color>
-    <color name="above_darkened_normal_theme">@color/above_darkened_light_theme</color>
+    <color name="inset_normal_theme">@color/inset_light_theme</color>
     <color name="accent_normal_theme">@color/accent_light_theme</color>
     <color name="accent_bright_normal_theme">@color/accent_bright_light_theme</color>
+    <color name="accent_high_contrast_normal_theme">@color/accent_high_contrast_light_theme</color>
     <color name="neutral_normal_theme">@color/neutral_light_theme</color>
+    <color name="neutral_faded_normal_theme">@color/neutral_faded_light_theme</color>
+    <color name="shadow_normal_theme">@color/shadow_light_theme</color>
+    <color name="destructive_normal_theme">@color/destructive_light_theme</color>
+    <color name="scrimStart_normal_theme">@color/scrimStart_light_theme</color>
+    <color name="scrimEnd_normal_theme">@color/scrimEnd_light_theme</color>
 
     <!-- Bookmark buttons -->
     <color name="bookmark_favicon_background">#DFDFE3</color>
 
-    <!-- Session placeholder icons-->
-    <color name="session_placeholder_blue">#00B3F4</color>
-    <color name="session_placeholder_orange">#FF8A50</color>
-    <color name="session_placeholder_green">#54FFBD</color>
-    <color name="session_placeholder_purple">#AB71FF</color>
-    <color name="session_placeholder_pink">#FF4AA2</color>
+    <!-- Collection icons-->
+    <color name="collection_icon_color_violet">#7542E5</color>
+    <color name="collection_icon_color_blue">#0250BB</color>
+    <color name="collection_icon_color_pink">#E31587</color>
+    <color name="collection_icon_color_green">#2AC3A2</color>
+    <color name="collection_icon_color_yellow">#E27F2E</color>
 
     <!-- Library buttons -->
     <color name="library_sessions_icon_background">#B9F0FD</color>
@@ -63,14 +91,22 @@
     <color name="library_downloads_icon_background">#D4C1FA</color>
     <color name="library_downloads_icon">#2E2060</color>
 
-    <color name="library_bookmarks_icon_background">#F4B8D9</color>
-    <color name="library_bookmarks_icon">#491949</color>
+    <color name="bookmarks_icon_background_filled">#C60084</color>
+    <color name="bookmarks_icon_filled">#FFB4DB</color>
+    <color name="bookmarks_icon_background_outline">#FFB4DB</color>
+    <color name="bookmarks_icon_outline">#50134B</color>
 
     <color name="library_history_icon_background">#F5C0C6</color>
     <color name="library_history_icon">#3E0909</color>
 
     <color name="library_reading_list_icon_background">#FCE98F</color>
     <color name="library_reading_list_icon">#8A201F</color>
+
+    <color name="tab_circle_icon_background">#FFDDBD</color>
+    <color name="tab_circle_icon_foreground">#7C1504</color>
+
+    <color name="collection_circle_icon_background">#D1FFEE</color>
+    <color name="collection_circle_icon_foreground">#084036</color>
 
     <!-- Quick action buttons-->
     <color name="quick_action_share_icon">#174291</color>
@@ -79,8 +115,42 @@
     <color name="quick_action_read_icon">#8a201f</color>
     <color name="quick_action_read_icon_background">#fce98f</color>
 
+    <color name="quick_action_reader_close_icon">#f9f9fb</color>
+    <color name="quick_action_reader_close_icon_background">#582bcb</color>
+
+    <color name="quick_action_reader_appearance_icon">#482166</color>
+    <color name="quick_action_reader_appearance_icon_background">#ecbcfb</color>
+
+    <!-- Toggle Colors -->
+    <color name="toggle_off_knob_light_theme">@color/photonGrey10</color>
+    <color name="toggle_off_track_light_theme">@color/dark_grey_90</color>
+    <color name="toggle_off_knob_dark_theme">@color/light_grey_05</color>
+    <color name="toggle_off_track_dark_theme">@color/light_grey_05</color>
+    <color name="toggle_off_knob_normal_theme">@color/toggle_off_knob_light_theme</color>
+    <color name="toggle_off_track_normal_theme">@color/toggle_off_track_light_theme</color>
+
     <!-- Misc colors applied universally-->
     <color name="suggestion_highlight_color">#5C592ACB</color>
-    <color name="delete_color">@color/photonRed60</color>
+    <color name="private_browsing_button_accent_color">@color/foundation_private_theme</color>
     <color name="white_color">#FBFBFE</color>
+    <color name="light_grey_05">#FBFBFE</color>
+    <color name="dark_grey_90">#15141A</color>
+    <color name="neutral_text">@color/white_color</color>
+    <color name="disabled_text">#cccccc</color>
+    <color name="violet_05">#E7DFFF</color>
+    <color name="text_scale_example_text_color">#232749</color>
+
+    <!-- Reader View colors -->
+    <color name="mozac_feature_readerview_text_color">@color/primary_text_light_theme</color>
+
+    <!-- Onboarding colors -->
+    <color name="onboarding_card_background_dark">#20123A</color>
+    <color name="onboarding_card_primary_text_dark">#3FE1B0</color>
+    <color name="onboarding_card_button_background_dark">#312A65</color>
+
+    <!-- Share UI -->
+    <color name="default_share_background">#E3E2E3</color>
+    <color name="device_type_desktop_background">#F091C3</color>
+    <color name="device_type_mobile_background">#D4C1FA</color>
+    <color name="device_foreground">#20123A</color>
 </resources>

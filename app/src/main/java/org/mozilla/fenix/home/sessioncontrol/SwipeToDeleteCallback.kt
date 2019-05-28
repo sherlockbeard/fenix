@@ -4,17 +4,17 @@
 
 package org.mozilla.fenix.home.sessioncontrol
 
-import android.content.Context
 import android.content.res.Resources
 import android.graphics.Canvas
-import android.graphics.Paint
+import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import io.reactivex.Observer
 import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.getColorFromAttr
+import org.mozilla.fenix.home.sessioncontrol.viewholders.TabInCollectionViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.TabViewHolder
-import android.graphics.drawable.Drawable
 
 class SwipeToDeleteCallback(
     val actionEmitter: Observer<SessionControlAction>
@@ -29,8 +29,11 @@ class SwipeToDeleteCallback(
     }
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-        if (viewHolder is TabViewHolder) {
-            actionEmitter.onNext(TabAction.Close(viewHolder.tab?.sessionId!!))
+        when (viewHolder) {
+            is TabViewHolder -> actionEmitter.onNext(TabAction.Close(viewHolder.tab?.sessionId!!))
+            is TabInCollectionViewHolder -> {
+                actionEmitter.onNext(CollectionAction.RemoveTab(viewHolder.collection, viewHolder.tab))
+            }
         }
     }
 
@@ -45,11 +48,19 @@ class SwipeToDeleteCallback(
     ) {
         super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
         val icon = ContextCompat.getDrawable(recyclerView.context, R.drawable.ic_delete)
-        val background = ContextCompat.getDrawable(
-            recyclerView.context,
-            R.drawable.session_background
-        )
+        icon?.setTint(R.attr.destructive.getColorFromAttr(recyclerView.context))
 
+        val backgroundDrawable = when {
+            viewHolder is TabInCollectionViewHolder && viewHolder.isLastTab -> {
+                R.drawable.tab_in_collection_last_swipe_background
+            }
+            viewHolder is TabInCollectionViewHolder -> {
+                R.drawable.tab_in_collection_swipe_background
+            }
+            else -> R.drawable.session_background
+        }
+
+        val background = ContextCompat.getDrawable(recyclerView.context, backgroundDrawable)
         background?.let {
             icon?.let {
                 val itemView = viewHolder.itemView
@@ -72,7 +83,7 @@ class SwipeToDeleteCallback(
                             itemView.bottom
                         )
                         icon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
-                        draw(background, icon, c, recyclerView.context, iconLeft, iconBottom)
+                        draw(background, icon, c)
                     }
                     dX < 0 -> { // Swiping to the left
                         iconLeft = itemView.right - margin - iconWidth
@@ -82,7 +93,7 @@ class SwipeToDeleteCallback(
                             itemView.top, itemView.right, itemView.bottom
                         )
                         icon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
-                        draw(background, icon, c, recyclerView.context, iconLeft, iconBottom)
+                        draw(background, icon, c)
                     }
                     else -> { // View not swiped
                         background.setBounds(0, 0, 0, 0)
@@ -97,7 +108,7 @@ class SwipeToDeleteCallback(
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder
     ): Int {
-        return if (viewHolder is TabViewHolder) {
+        return if (viewHolder is TabViewHolder || viewHolder is TabInCollectionViewHolder) {
             super.getSwipeDirs(recyclerView, viewHolder)
         } else 0
     }
@@ -105,36 +116,16 @@ class SwipeToDeleteCallback(
     companion object {
         const val BACKGROUND_CORNER_OFFSET = 40
         const val MARGIN = 32
-        const val TEXT_MARGIN = 12
-        const val TEXT_SIZE = 36f
-        const val TEXT_MARGIN_X = 14
         const val DENSITY_CONVERSION = 160f
 
         @Suppress("LongParameterList")
         private fun draw(
             background: Drawable,
             icon: Drawable,
-            c: Canvas,
-            context: Context,
-            iconLeft: Int,
-            iconBottom: Int
+            c: Canvas
         ) {
             background.draw(c)
             icon.draw(c)
-            val textPaint = Paint()
-            textPaint.color = ContextCompat.getColor(
-                context,
-                R.color.delete_color
-            )
-            textPaint.textSize = TEXT_SIZE
-            val textX = iconLeft - TEXT_MARGIN_X
-            val textY = iconBottom + convertDpToPixel(TEXT_MARGIN.toFloat())
-            c.drawText(
-                context.getString(R.string.current_session_delete),
-                textX.toFloat(),
-                textY.toFloat(),
-                textPaint
-            )
         }
 
         private fun convertDpToPixel(dp: Float): Int {

@@ -13,6 +13,8 @@ import android.content.Intent.EXTRA_SUBJECT
 import android.content.Intent.EXTRA_TEXT
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.view.ContextThemeWrapper
+import android.view.View
+import android.view.ViewGroup
 import androidx.annotation.StringRes
 import androidx.fragment.app.FragmentActivity
 import mozilla.components.support.base.log.Log
@@ -49,6 +51,7 @@ fun Context.getPreferenceKey(@StringRes resourceId: Int): String =
  * @param subject of the intent [EXTRA_TEXT]
  * @return true it is able to share false otherwise.
  */
+@Deprecated("We are replacing the system share sheet with a custom version. See: [ShareFragment]")
 fun Context.share(text: String, subject: String = ""): Boolean {
     return try {
         val intent = Intent(ACTION_SEND).apply {
@@ -69,3 +72,11 @@ fun Context.share(text: String, subject: String = ""): Boolean {
         false
     }
 }
+
+/**
+ *  Gets the Root View with an activity context
+ *
+ * @return ViewGroup? if it is able to get a root view from the context
+ */
+fun Context.getRootView(): View? =
+    asActivity()?.window?.decorView?.findViewById<View>(android.R.id.content) as? ViewGroup

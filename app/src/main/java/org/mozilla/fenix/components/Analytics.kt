@@ -19,6 +19,7 @@ import org.mozilla.fenix.components.metrics.AdjustMetricsService
 import org.mozilla.fenix.components.metrics.GleanMetricsService
 import org.mozilla.fenix.components.metrics.LeanplumMetricsService
 import org.mozilla.fenix.components.metrics.MetricController
+import org.mozilla.fenix.test.Mockable
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.geckoview.BuildConfig.MOZ_APP_BUILDID
 import org.mozilla.geckoview.BuildConfig.MOZ_APP_VERSION
@@ -26,11 +27,12 @@ import org.mozilla.geckoview.BuildConfig.MOZ_APP_VERSION
 /**
  * Component group for all functionality related to analytics e.g. crash reporting and telemetry.
  */
+@Mockable
 class Analytics(
     private val context: Context
 ) {
     val crashReporter: CrashReporter by lazy {
-        var services = listOf<CrashReporterService>()
+        val services = mutableListOf<CrashReporterService>()
 
         if (!BuildConfig.SENTRY_TOKEN.isNullOrEmpty()) {
             val sentryService = SentryService(
@@ -40,11 +42,13 @@ class Analytics(
                 sendEventForNativeCrashes = true
             )
 
-            services += sentryService
+            services.add(sentryService)
         }
 
-        val socorroService = MozillaSocorroService(context, context.getString(R.string.app_name))
-        services += socorroService
+        // The name "Fenix" here matches the product name on Socorro and is unrelated to the actual app name:
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1523284
+        val socorroService = MozillaSocorroService(context, appName = "Fenix")
+        services.add(socorroService)
 
         val intent = Intent(context, HomeActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

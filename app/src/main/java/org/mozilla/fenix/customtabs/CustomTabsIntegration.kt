@@ -22,11 +22,15 @@ class CustomTabsIntegration(
     onItemTapped: (ToolbarMenu.Item) -> Unit = {}
 ) : LifecycleAwareFeature, BackHandler {
 
-    private val session = sessionManager.findSessionById(sessionId)
+    init {
+        toolbar.elevation = 0f
+    }
 
     private val customTabToolbarMenu by lazy {
-        CustomTabToolbarMenu(context,
-            requestDesktopStateProvider = { session?.desktopMode ?: false },
+        CustomTabToolbarMenu(
+            context,
+            sessionManager,
+            sessionId,
             onItemTapped = onItemTapped
         )
     }
@@ -36,6 +40,7 @@ class CustomTabsIntegration(
         toolbar,
         sessionId,
         customTabToolbarMenu.menuBuilder,
+        START_OF_MENU_ITEMS_INDEX,
         closeListener = { activity?.finish() })
 
     override fun start() {
@@ -48,5 +53,9 @@ class CustomTabsIntegration(
 
     override fun onBackPressed(): Boolean {
         return feature.onBackPressed()
+    }
+
+    companion object {
+        const val START_OF_MENU_ITEMS_INDEX = 2
     }
 }

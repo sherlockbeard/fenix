@@ -28,7 +28,6 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.feature.sitepermissions.SitePermissions
 import org.jetbrains.anko.alert
@@ -70,7 +69,7 @@ class SitePermissionsExceptionsFragment : Fragment(), View.OnClickListener, Coro
         recyclerView = rootView.findViewById(R.id.exceptions)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
-        val sitePermissionsPaged = requireContext().components.storage.getSitePermissionsPaged()
+        val sitePermissionsPaged = requireContext().components.core.permissionStorage.getSitePermissionsPaged()
 
         val adapter = ExceptionsAdapter(this)
         val liveData = LivePagedListBuilder(sitePermissionsPaged, MAX_ITEMS_PER_PAGE).build()
@@ -124,7 +123,7 @@ class SitePermissionsExceptionsFragment : Fragment(), View.OnClickListener, Coro
 
     private fun deleteAllSitePermissions() {
         launch(IO) {
-            requireContext().components.storage.deleteAllSitePermissions()
+            requireContext().components.core.permissionStorage.deleteAllSitePermissions()
             launch(Main) {
                 showEmptyListMessage()
             }
@@ -168,10 +167,9 @@ class ExceptionsAdapter(private val clickListener: View.OnClickListener) :
     override fun onBindViewHolder(holder: SitePermissionsViewHolder, position: Int) {
         val sitePermissions = requireNotNull(getItem(position))
         val context = holder.textView.context
-        val client = context.components.core.client
 
         launch(IO) {
-            val bitmap = BrowserIcons(context, client)
+            val bitmap = context.components.core.icons
                 .loadIcon(IconRequest(sitePermissions.origin)).await().bitmap
             launch(Main) {
                 val drawable = BitmapDrawable(context.resources, bitmap)

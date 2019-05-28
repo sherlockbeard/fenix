@@ -4,9 +4,11 @@
 
 package org.mozilla.fenix.library.bookmarks
 
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import io.reactivex.Observer
@@ -17,7 +19,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
-import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.concept.storage.BookmarkNode
@@ -53,13 +54,13 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
         val view = LayoutInflater.from(parent.context).inflate(R.layout.bookmark_row, parent, false)
 
         return when (viewType) {
-            BookmarkItemViewHolder.viewType.ordinal -> BookmarkAdapter.BookmarkItemViewHolder(
+            BookmarkItemViewHolder.viewType.ordinal -> BookmarkItemViewHolder(
                 view, actionEmitter, job
             )
-            BookmarkFolderViewHolder.viewType.ordinal -> BookmarkAdapter.BookmarkFolderViewHolder(
+            BookmarkFolderViewHolder.viewType.ordinal -> BookmarkFolderViewHolder(
                 view, actionEmitter, job
             )
-            BookmarkSeparatorViewHolder.viewType.ordinal -> BookmarkAdapter.BookmarkSeparatorViewHolder(
+            BookmarkSeparatorViewHolder.viewType.ordinal -> BookmarkSeparatorViewHolder(
                 view, actionEmitter, job
             )
             else -> throw IllegalStateException("ViewType $viewType does not match to a ViewHolder")
@@ -91,17 +92,17 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
 
         when (holder) {
-            is BookmarkAdapter.BookmarkItemViewHolder -> holder.bind(
+            is BookmarkItemViewHolder -> holder.bind(
                 tree[position],
                 mode,
                 tree[position] in selected
             )
-            is BookmarkAdapter.BookmarkFolderViewHolder -> holder.bind(
+            is BookmarkFolderViewHolder -> holder.bind(
                 tree[position],
                 mode,
                 tree[position] in selected
             )
-            is BookmarkAdapter.BookmarkSeparatorViewHolder -> holder.bind(
+            is BookmarkSeparatorViewHolder -> holder.bind(
                 tree[position], mode,
                 tree[position] in selected
             )
@@ -130,15 +131,24 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
     ) :
         BookmarkNodeViewHolder(view, actionEmitter, job, containerView) {
 
+        @Suppress("ComplexMethod")
         override fun bind(item: BookmarkNode, mode: BookmarkState.Mode, selected: Boolean) {
+
+            val shiftTwoDp = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, TWO_DIGIT_MARGIN, containerView!!.context.resources.displayMetrics
+            ).toInt()
+            val params = bookmark_title.getLayoutParams() as ViewGroup.MarginLayoutParams
+            params.topMargin = shiftTwoDp
+            bookmark_title.setLayoutParams(params)
 
             bookmark_favicon.visibility = View.VISIBLE
             bookmark_title.visibility = View.VISIBLE
+            bookmark_url.visibility = View.VISIBLE
             bookmark_overflow.visibility = View.VISIBLE
             bookmark_separator.visibility = View.GONE
             bookmark_layout.isClickable = true
 
-            val bookmarkItemMenu = BookmarkItemMenu(containerView!!.context, item) {
+            val bookmarkItemMenu = BookmarkItemMenu(containerView.context, item) {
                 when (it) {
                     is BookmarkItemMenu.Item.Edit -> {
                         actionEmitter.onNext(BookmarkAction.Edit(item))
@@ -171,7 +181,8 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
                     orientation = BrowserMenu.Orientation.DOWN
                 )
             }
-            bookmark_title.text = item.title
+            bookmark_title.text = if (item.title.isNullOrBlank()) item.url else item.title
+            bookmark_url.text = item.url
             updateUrl(item, mode, selected)
         }
 
@@ -184,7 +195,7 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
         private fun setColorsAndIcons(selected: Boolean, item: BookmarkNode) {
             val backgroundTint =
                 if (selected) {
-                    DefaultThemeManager.resolveAttribute(R.attr.accent, containerView!!.context)
+                    DefaultThemeManager.resolveAttribute(R.attr.accentHighContrast, containerView!!.context)
                 } else {
                     DefaultThemeManager.resolveAttribute(R.attr.neutral, containerView!!.context)
                 }
@@ -195,7 +206,7 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
 
             if (!selected && item.url?.startsWith("http") == true) {
                 launch(Dispatchers.IO) {
-                    val bitmap = BrowserIcons(bookmark_favicon.context, bookmark_layout.context.components.core.client)
+                    val bitmap = bookmark_layout.context.components.core.icons
                         .loadIcon(IconRequest(item.url!!)).await().bitmap
                     launch(Dispatchers.Main) {
                         bookmark_favicon.setImageBitmap(bitmap)
@@ -230,7 +241,9 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
         }
 
         companion object {
-            val viewType = BookmarkAdapter.ViewType.ITEM
+            internal const val TWO_DIGIT_MARGIN = 2F
+
+            val viewType = ViewType.ITEM
         }
     }
 
@@ -244,9 +257,17 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
 
         override fun bind(item: BookmarkNode, mode: BookmarkState.Mode, selected: Boolean) {
 
+            val constraintSet = ConstraintSet()
+            constraintSet.clone(bookmark_layout)
+            constraintSet.connect(
+                bookmark_title.id, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM
+            )
+            constraintSet.applyTo(bookmark_layout)
+
             bookmark_favicon.setImageResource(R.drawable.ic_folder_icon)
             bookmark_favicon.visibility = View.VISIBLE
             bookmark_title.visibility = View.VISIBLE
+            bookmark_url.visibility = View.GONE
             bookmark_overflow.visibility = View.VISIBLE
             bookmark_separator.visibility = View.GONE
             bookmark_layout.isClickable = true
@@ -256,7 +277,7 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
             setMenu(item, containerView!!)
 
             val backgroundTint = if (selected) {
-                DefaultThemeManager.resolveAttribute(R.attr.accent, containerView.context)
+                DefaultThemeManager.resolveAttribute(R.attr.accentHighContrast, containerView.context)
             } else {
                 DefaultThemeManager.resolveAttribute(R.attr.neutral, containerView.context)
             }
@@ -281,16 +302,13 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
                     is BookmarkItemMenu.Item.Select -> {
                         actionEmitter.onNext(BookmarkAction.Select(item))
                     }
-                    is BookmarkItemMenu.Item.Copy -> {
-                        actionEmitter.onNext(BookmarkAction.Copy(item))
-                    }
                     is BookmarkItemMenu.Item.Delete -> {
                         actionEmitter.onNext(BookmarkAction.Delete(item))
                     }
                 }
             }
 
-            if (enumValues<BookmarkRoot>().all { it.id != item.guid }) {
+            if (!item.inRoots()) {
                 bookmark_overflow.increaseTapArea(bookmarkOverflowExtraDips)
                 bookmark_overflow.setOnClickListener {
                     bookmarkItemMenu.menuBuilder.build(containerView.context).show(
@@ -298,6 +316,7 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
                         orientation = BrowserMenu.Orientation.DOWN
                     )
                 }
+                bookmark_layout.setOnLongClickListener(null)
             } else {
                 bookmark_overflow.visibility = View.GONE
             }
@@ -319,7 +338,7 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
             }
 
             bookmark_layout.setOnLongClickListener {
-                if (mode == BookmarkState.Mode.Normal) {
+                if (mode == BookmarkState.Mode.Normal && !item.inRoots()) {
                     if (selected) actionEmitter.onNext(BookmarkAction.Deselect(item)) else actionEmitter.onNext(
                         BookmarkAction.Select(item)
                     )
@@ -329,7 +348,7 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
         }
 
         companion object {
-            val viewType = BookmarkAdapter.ViewType.FOLDER
+            val viewType = ViewType.FOLDER
         }
     }
 
@@ -344,6 +363,7 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
 
             bookmark_favicon.visibility = View.GONE
             bookmark_title.visibility = View.GONE
+            bookmark_url.visibility = View.GONE
             bookmark_overflow.increaseTapArea(bookmarkOverflowExtraDips)
             bookmark_overflow.visibility = View.VISIBLE
             bookmark_separator.visibility = View.VISIBLE
@@ -366,15 +386,17 @@ class BookmarkAdapter(val emptyView: View, val actionEmitter: Observer<BookmarkA
         }
 
         companion object {
-            val viewType = BookmarkAdapter.ViewType.SEPARATOR
+            val viewType = ViewType.SEPARATOR
         }
     }
 
     companion object {
-        private const val bookmarkOverflowExtraDips = 8
+        private const val bookmarkOverflowExtraDips = 16
     }
 
     enum class ViewType {
         ITEM, FOLDER, SEPARATOR
     }
 }
+
+fun BookmarkNode.inRoots() = enumValues<BookmarkRoot>().any { it.id == guid }

@@ -7,38 +7,37 @@ package org.mozilla.fenix.quickactionsheet
 import android.view.ViewGroup
 import org.mozilla.fenix.mvi.Action
 import org.mozilla.fenix.mvi.ActionBusFactory
+import org.mozilla.fenix.mvi.UIComponentViewModelProvider
+import org.mozilla.fenix.mvi.ViewState
 import org.mozilla.fenix.mvi.Change
 import org.mozilla.fenix.mvi.Reducer
 import org.mozilla.fenix.mvi.UIComponent
+import org.mozilla.fenix.mvi.UIComponentViewModelBase
 import org.mozilla.fenix.mvi.UIView
-import org.mozilla.fenix.mvi.ViewState
 
 class QuickActionComponent(
     private val container: ViewGroup,
     bus: ActionBusFactory,
-    override var initialState: QuickActionState = QuickActionState(false)
+    viewModelProvider: UIComponentViewModelProvider<QuickActionState, QuickActionChange>
 ) : UIComponent<QuickActionState, QuickActionAction, QuickActionChange>(
     bus.getManagedEmitter(QuickActionAction::class.java),
-    bus.getSafeManagedObservable(QuickActionChange::class.java)
+    bus.getSafeManagedObservable(QuickActionChange::class.java),
+    viewModelProvider
 ) {
-
-    override val reducer: Reducer<QuickActionState, QuickActionChange> = { state, change ->
-        when (change) {
-            is QuickActionChange.ReadableStateChange -> {
-                state.copy(readable = change.readable)
-            }
-        }
-    }
-
     override fun initView(): UIView<QuickActionState, QuickActionAction, QuickActionChange> =
         QuickActionUIView(container, actionEmitter, changesObservable)
 
     init {
-        render(reducer)
+        bind()
     }
 }
 
-data class QuickActionState(val readable: Boolean) : ViewState
+data class QuickActionState(
+    val readable: Boolean,
+    val bookmarked: Boolean,
+    val readerActive: Boolean,
+    val bounceNeeded: Boolean
+) : ViewState
 
 sealed class QuickActionAction : Action {
     object Opened : QuickActionAction()
@@ -47,8 +46,35 @@ sealed class QuickActionAction : Action {
     object DownloadsPressed : QuickActionAction()
     object BookmarkPressed : QuickActionAction()
     object ReadPressed : QuickActionAction()
+    object ReadAppearancePressed : QuickActionAction()
 }
 
 sealed class QuickActionChange : Change {
+    data class BookmarkedStateChange(val bookmarked: Boolean) : QuickActionChange()
     data class ReadableStateChange(val readable: Boolean) : QuickActionChange()
+    data class ReaderActiveStateChange(val active: Boolean) : QuickActionChange()
+    object BounceNeededChange : QuickActionChange()
+}
+
+class QuickActionViewModel(
+    initialState: QuickActionState
+) : UIComponentViewModelBase<QuickActionState, QuickActionChange>(initialState, reducer) {
+    companion object {
+        val reducer: Reducer<QuickActionState, QuickActionChange> = { state, change ->
+            when (change) {
+                is QuickActionChange.BounceNeededChange -> {
+                    state.copy(bounceNeeded = true)
+                }
+                is QuickActionChange.BookmarkedStateChange -> {
+                    state.copy(bookmarked = change.bookmarked)
+                }
+                is QuickActionChange.ReadableStateChange -> {
+                    state.copy(readable = change.readable)
+                }
+                is QuickActionChange.ReaderActiveStateChange -> {
+                    state.copy(readerActive = change.active)
+                }
+            }
+        }
+    }
 }

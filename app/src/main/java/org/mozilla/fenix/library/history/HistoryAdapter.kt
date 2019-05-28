@@ -62,6 +62,8 @@ private class HistoryList(val history: List<HistoryItem>) {
         items.addAll(groups.adapterItemsForRange(Range.ThisWeek))
         items.addAll(groups.adapterItemsForRange(Range.ThisMonth))
         items.addAll(groups.adapterItemsForRange(Range.Older))
+        // No history only the delete button, so let's clear the list to show the empty text
+        if (items.size == 1) items.clear()
         this.items = items
     }
 
@@ -98,10 +100,13 @@ class HistoryAdapter(
     private var historyList: HistoryList = HistoryList(emptyList())
     private var mode: HistoryState.Mode = HistoryState.Mode.Normal
     private lateinit var job: Job
+    var selected = listOf<HistoryItem>()
 
     fun updateData(items: List<HistoryItem>, mode: HistoryState.Mode) {
         this.historyList = HistoryList(items)
         this.mode = mode
+        this.selected = if (mode is HistoryState.Mode.Editing) mode.selectedItems else listOf()
+
         notifyDataSetChanged()
     }
 

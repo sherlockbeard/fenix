@@ -9,10 +9,11 @@ import android.content.res.Configuration
 import android.os.Bundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import mozilla.components.browser.engine.gecko.GeckoEngine
 import mozilla.components.browser.engine.gecko.fetch.GeckoViewFetchClient
+import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.browser.session.storage.SessionStorage
 import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
@@ -20,11 +21,14 @@ import mozilla.components.browser.storage.sync.PlacesHistoryStorage
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.Companion.SAFE_BROWSING_ALL
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.session.HistoryDelegate
 import mozilla.components.lib.crash.handler.CrashHandlerService
 import org.mozilla.fenix.AppRequestInterceptor
+import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.test.Mockable
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
@@ -33,9 +37,10 @@ import java.util.concurrent.TimeUnit
 /**
  * Component group for all core browser functionality.
  */
+@Mockable
 class Core(private val context: Context) {
 
-    private val runtime by lazy {
+    protected val runtime by lazy {
         val builder = GeckoRuntimeSettings.Builder()
 
         testConfig?.let {
@@ -46,6 +51,13 @@ class Core(private val context: Context) {
         val runtimeSettings = builder
             .crashHandler(CrashHandlerService::class.java)
             .build()
+
+        if (!Settings.getInstance(context).shouldUseAutoSize) {
+            runtimeSettings.automaticFontSizeAdjustment = false
+            runtimeSettings.fontInflationEnabled = true
+            val fontSize = Settings.getInstance(context).fontSizeFactor
+            runtimeSettings.fontSizeFactor = fontSize
+        }
 
         GeckoRuntime.create(context, runtimeSettings)
     }
@@ -62,7 +74,9 @@ class Core(private val context: Context) {
             remoteDebuggingEnabled = Settings.getInstance(context).isRemoteDebuggingEnabled,
             testingModeEnabled = false,
             trackingProtectionPolicy = createTrackingProtectionPolicy(),
-            historyTrackingDelegate = HistoryDelegate(historyStorage)
+            historyTrackingDelegate = HistoryDelegate(historyStorage),
+            preferredColorScheme = getPreferredColorScheme(),
+            automaticFontSizeAdjustment = Settings.getInstance(context).shouldUseAutoSize
         )
 
         GeckoEngine(context, defaultSettings, runtime)
@@ -87,31 +101,32 @@ class Core(private val context: Context) {
      */
     val sessionManager by lazy {
         SessionManager(engine).also { sessionManager ->
-            // Restore a previous, still active bundle.
-            GlobalScope.launch(Dispatchers.Main) {
-                val snapshot = async(Dispatchers.IO) {
-                    sessionStorage.restore()
-                }
+            // Install the "icons" WebExtension to automatically load icons for every visited website.
+            icons.install(engine, sessionManager)
 
-                // There's an active bundle with a snapshot: Feed it into the SessionManager.
-                snapshot.await()?.let {
-                    try {
-                        sessionManager.restore(it)
-                    } catch (_: IllegalArgumentException) {
-                        return@let
-                    }
+            // Restore the previous state.
+            GlobalScope.launch(Dispatchers.Main) {
+                withContext(Dispatchers.IO) {
+                    sessionStorage.restore()
+                }?.let { snapshot ->
+                    sessionManager.restore(snapshot, updateSelection = (sessionManager.selectedSession == null))
                 }
 
                 // Now that we have restored our previous state (if there's one) let's setup auto saving the state while
                 // the app is used.
-                sessionStorage.apply {
-                    autoSave(sessionManager)
-                        .periodicallyInForeground(interval = 30, unit = TimeUnit.SECONDS)
-                        .whenGoingToBackground()
-                        .whenSessionsChange()
-                }
+                sessionStorage.autoSave(sessionManager)
+                    .periodicallyInForeground(interval = 30, unit = TimeUnit.SECONDS)
+                    .whenGoingToBackground()
+                    .whenSessionsChange()
             }
         }
+    }
+
+    /**
+     * Icons component for loading, caching and processing website icons.
+     */
+    val icons by lazy {
+        BrowserIcons(context, context.components.core.client)
     }
 
     /**
@@ -120,8 +135,11 @@ class Core(private val context: Context) {
      */
     val historyStorage by lazy { PlacesHistoryStorage(context) }
 
-    val bookmarksStorage
-            by lazy { PlacesBookmarksStorage(context) }
+    val bookmarksStorage by lazy { PlacesBookmarksStorage(context) }
+
+    val tabCollectionStorage by lazy { TabCollectionStorage(context, sessionManager) }
+
+    val permissionStorage by lazy { PermissionStorage(context) }
 
     /**
      * Constructs a [TrackingProtectionPolicy] based on current preferences.
@@ -136,36 +154,28 @@ class Core(private val context: Context) {
         normalMode: Boolean = Settings.getInstance(context).shouldUseTrackingProtection,
         privateMode: Boolean = true
     ): TrackingProtectionPolicy {
-        val trackingProtectionPolicy = TrackingProtectionPolicy.select(
-            TrackingProtectionPolicy.AD,
-            TrackingProtectionPolicy.ANALYTICS,
-            TrackingProtectionPolicy.SOCIAL
-        )
+        val trackingProtectionPolicy = TrackingProtectionPolicy.recommended()
 
         return when {
             normalMode && privateMode -> trackingProtectionPolicy
             normalMode && !privateMode -> trackingProtectionPolicy.forRegularSessionsOnly()
             !normalMode && privateMode -> trackingProtectionPolicy.forPrivateSessionsOnly()
-            else -> TrackingProtectionPolicy.none()
+            else -> TrackingProtectionPolicy.select(SAFE_BROWSING_ALL)
         }
     }
 
     /**
      * Sets Preferred Color scheme based on Dark/Light Theme Settings or Current Configuration
      */
-    fun setEnginePreferredColorScheme() {
+    fun getPreferredColorScheme(): PreferredColorScheme {
         val inDark =
             (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                     Configuration.UI_MODE_NIGHT_YES
-        engine.settings.preferredColorScheme = when {
+        return when {
             Settings.getInstance(context).shouldUseDarkTheme -> PreferredColorScheme.Dark
             Settings.getInstance(context).shouldUseLightTheme -> PreferredColorScheme.Light
             inDark -> PreferredColorScheme.Dark
             else -> PreferredColorScheme.Light
         }
-    }
-
-    companion object {
-        private const val BUNDLE_LIFETIME_IN_MINUTES = 5L
     }
 }

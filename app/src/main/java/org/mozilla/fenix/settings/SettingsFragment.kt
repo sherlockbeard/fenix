@@ -22,35 +22,39 @@ import kotlinx.coroutines.launch
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.OAuthAccount
 import mozilla.components.concept.sync.Profile
-import kotlin.coroutines.CoroutineContext
 import mozilla.components.service.fxa.FxaUnauthorizedException
-import org.mozilla.fenix.BuildConfig
+import org.mozilla.fenix.BrowserDirection
+import org.mozilla.fenix.Config
 import org.mozilla.fenix.FenixApplication
 import org.mozilla.fenix.HomeActivity
-import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.R
-import org.mozilla.fenix.ext.getPreferenceKey
-import org.mozilla.fenix.ext.requireComponents
-import org.mozilla.fenix.R.string.pref_key_leakcanary
-import org.mozilla.fenix.R.string.pref_key_feedback
-import org.mozilla.fenix.R.string.pref_key_help
-import org.mozilla.fenix.R.string.pref_key_make_default_browser
-import org.mozilla.fenix.R.string.pref_key_rate
-import org.mozilla.fenix.R.string.pref_key_remote_debugging
-import org.mozilla.fenix.R.string.pref_key_site_permissions
-import org.mozilla.fenix.R.string.pref_key_accessibility
-import org.mozilla.fenix.R.string.pref_key_language
-import org.mozilla.fenix.R.string.pref_key_data_choices
 import org.mozilla.fenix.R.string.pref_key_about
-import org.mozilla.fenix.R.string.pref_key_sign_in
-import org.mozilla.fenix.R.string.pref_key_theme
+import org.mozilla.fenix.R.string.pref_key_accessibility
 import org.mozilla.fenix.R.string.pref_key_account
 import org.mozilla.fenix.R.string.pref_key_account_category
+import org.mozilla.fenix.R.string.pref_key_data_choices
+import org.mozilla.fenix.R.string.pref_key_delete_browsing_data
+import org.mozilla.fenix.R.string.pref_key_help
+import org.mozilla.fenix.R.string.pref_key_language
+import org.mozilla.fenix.R.string.pref_key_leakcanary
+import org.mozilla.fenix.R.string.pref_key_make_default_browser
+import org.mozilla.fenix.R.string.pref_key_privacy_notice
+import org.mozilla.fenix.R.string.pref_key_rate
+import org.mozilla.fenix.R.string.pref_key_remote_debugging
 import org.mozilla.fenix.R.string.pref_key_search_engine_settings
+import org.mozilla.fenix.R.string.pref_key_sign_in
+import org.mozilla.fenix.R.string.pref_key_site_permissions
+import org.mozilla.fenix.R.string.pref_key_theme
 import org.mozilla.fenix.R.string.pref_key_tracking_protection_settings
+import org.mozilla.fenix.R.string.pref_key_your_rights
+import org.mozilla.fenix.components.metrics.Event
+import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.getPreferenceKey
+import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.utils.ItsNotBrokenSnack
+import kotlin.coroutines.CoroutineContext
 
-@SuppressWarnings("TooManyFunctions")
+@SuppressWarnings("TooManyFunctions", "LargeClass")
 class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObserver {
     private lateinit var job: Job
     override val coroutineContext: CoroutineContext
@@ -59,7 +63,21 @@ class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObse
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         job = Job()
+        setupAccountUI()
         updateSignInVisibility()
+
+        preferenceManager.sharedPreferences.registerOnSharedPreferenceChangeListener { sharedPreferences, key ->
+            try {
+                context?.let {
+                    it.components.analytics.metrics.track(Event.PreferenceToggled
+                    (key, sharedPreferences.getBoolean(key, false), it))
+                }
+            } catch (e: IllegalArgumentException) {
+                // The event is not tracked
+            } catch (e: ClassCastException) {
+                // The setting is not a boolean, not tracked
+            }
+        }
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
@@ -103,6 +121,7 @@ class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObse
 
         setupPreferences()
         setupAccountUI()
+        updateSignInVisibility()
     }
 
     @Suppress("ComplexMethod")
@@ -128,16 +147,14 @@ class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObse
                 navigateToDataChoices()
             }
             resources.getString(pref_key_help) -> {
-                requireComponents.useCases.tabsUseCases.addTab
-                    .invoke(SupportUtils.getSumoURLForTopic(context!!, SupportUtils.SumoTopic.HELP))
-                navigateToSettingsArticle()
+                (activity as HomeActivity).openToBrowserAndLoad(
+                    searchTermOrURL = SupportUtils.getSumoURLForTopic(context!!, SupportUtils.SumoTopic.HELP),
+                    newTab = true,
+                    from = BrowserDirection.FromSettings
+                )
             }
             resources.getString(pref_key_rate) -> {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SupportUtils.RATE_APP_URL)))
-            }
-            resources.getString(pref_key_feedback) -> {
-                requireComponents.useCases.tabsUseCases.addTab.invoke(SupportUtils.FEEDBACK_URL)
-                navigateToSettingsArticle()
             }
             resources.getString(pref_key_about) -> {
                 navigateToAbout()
@@ -145,8 +162,26 @@ class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObse
             resources.getString(pref_key_account) -> {
                 navigateToAccountSettings()
             }
+            resources.getString(pref_key_delete_browsing_data) -> {
+                navigateToDeleteBrowsingData()
+            }
             resources.getString(pref_key_theme) -> {
                 navigateToThemeSettings()
+            }
+            resources.getString(pref_key_privacy_notice) -> {
+                requireContext().apply {
+                    val intent = SupportUtils.createCustomTabIntent(this, SupportUtils.PRIVACY_NOTICE_URL)
+                    startActivity(intent)
+                }
+            }
+            resources.getString(pref_key_your_rights) -> {
+                requireContext().apply {
+                    val intent = SupportUtils.createCustomTabIntent(
+                        this,
+                        SupportUtils.getSumoURLForTopic(context!!, SupportUtils.SumoTopic.YOUR_RIGHTS)
+                    )
+                    startActivity(intent)
+                }
             }
         }
         return super.onPreferenceTreeClick(preference)
@@ -168,15 +203,8 @@ class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObse
 
     private fun getClickListenerForSignIn(): OnPreferenceClickListener {
         return OnPreferenceClickListener {
-            requireComponents.services.accountsAuthFeature.beginAuthentication()
-            // TODO The sign-in web content populates session history,
-            // so pressing "back" after signing in won't take us back into the settings screen, but rather up the
-            // session history stack.
-            // We could auto-close this tab once we get to the end of the authentication process?
-            // Via an interceptor, perhaps.
-            view?.let {
-                (activity as HomeActivity).openToBrowser(null, BrowserDirection.FromSettings)
-            }
+            val directions = SettingsFragmentDirections.actionSettingsFragmentToTurnOnSyncFragment()
+            Navigation.findNavController(view!!).navigate(directions)
             true
         }
     }
@@ -193,20 +221,19 @@ class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObse
         preferenceMakeDefaultBrowser?.onPreferenceClickListener =
             getClickListenerForMakeDefaultBrowser()
 
-        preferenceLeakCanary?.isVisible = BuildConfig.DEBUG
-        if (BuildConfig.DEBUG) {
-            preferenceLeakCanary?.onPreferenceChangeListener =
-                Preference.OnPreferenceChangeListener { _, newValue ->
-                    (context?.applicationContext as FenixApplication).toggleLeakCanary(newValue as Boolean)
-                    true
-                }
-        }
-
-        preferenceRemoteDebugging?.onPreferenceChangeListener =
-            Preference.OnPreferenceChangeListener { _, newValue ->
-                requireComponents.core.engine.settings.remoteDebuggingEnabled = newValue as Boolean
+        if (!Config.channel.isReleased) {
+            preferenceLeakCanary?.setOnPreferenceChangeListener { _, newValue ->
+                (context?.applicationContext as FenixApplication).toggleLeakCanary(newValue as Boolean)
                 true
             }
+        }
+
+        preferenceRemoteDebugging?.setOnPreferenceChangeListener { preference, newValue ->
+            org.mozilla.fenix.utils.Settings.getInstance(preference.context).preferences.edit()
+                .putBoolean(preference.key, newValue as Boolean).apply()
+            requireComponents.core.engine.settings.remoteDebuggingEnabled = newValue
+            true
+        }
     }
 
     private val defaultClickListener = OnPreferenceClickListener { preference ->
@@ -259,13 +286,6 @@ class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObse
         Navigation.findNavController(view!!).navigate(directions)
     }
 
-    private fun navigateToSettingsArticle() {
-        val newSession = requireComponents.core.sessionManager.selectedSession?.id
-        view?.let {
-            (activity as HomeActivity).openToBrowser(newSession, BrowserDirection.FromSettings)
-        }
-    }
-
     private fun navigateToAbout() {
         val directions = SettingsFragmentDirections.actionSettingsFragmentToAboutFragment()
         Navigation.findNavController(view!!).navigate(directions)
@@ -277,8 +297,14 @@ class SettingsFragment : PreferenceFragmentCompat(), CoroutineScope, AccountObse
         Navigation.findNavController(view!!).navigate(directions)
     }
 
+    private fun navigateToDeleteBrowsingData() {
+        val directions = SettingsFragmentDirections.actionSettingsFragmentToDeleteBrowsingDataFragment()
+        Navigation.findNavController(view!!).navigate(directions)
+    }
+
     override fun onAuthenticated(account: OAuthAccount) {
         updateAuthState(account)
+        updateSignInVisibility()
     }
 
     override fun onError(error: Exception) {

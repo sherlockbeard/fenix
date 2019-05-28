@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.fenix.components.metrics
 
+import android.content.Context
+import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.browser.search.SearchEngine
 import mozilla.components.support.base.Component
 import mozilla.components.support.base.facts.Fact
@@ -10,6 +12,8 @@ import mozilla.components.support.base.facts.FactProcessor
 import mozilla.components.support.base.facts.Facts
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.BuildConfig
+import org.mozilla.fenix.R
+import java.lang.IllegalArgumentException
 
 sealed class Event {
 
@@ -70,8 +74,57 @@ sealed class Event {
     object CustomTabsClosed : Event()
     object CustomTabsActionTapped : Event()
     object CustomTabsMenuOpened : Event()
+    object UriOpened : Event()
+    object QRScannerOpened : Event()
+    object QRScannerPromptDisplayed : Event()
+    object QRScannerNavigationAllowed : Event()
+    object QRScannerNavigationDenied : Event()
+    object LibraryOpened : Event()
+    object LibraryClosed : Event()
+    object SyncAuthOpened : Event()
+    object SyncAuthClosed : Event()
+    object SyncAuthSignIn : Event()
+    object SyncAuthScanPairing : Event()
+    object SyncAuthCreateAccount : Event()
+    object SyncAccountOpened : Event()
+    object SyncAccountClosed : Event()
+    object SyncAccountSyncNow : Event()
+    object SyncAccountSignOut : Event()
+
+    data class PreferenceToggled(val preferenceKey: String, val enabled: Boolean, val context: Context) : Event() {
+        private val switchPreferenceTelemetryAllowList = listOf(
+            context.getString(R.string.pref_key_leakcanary),
+            context.getString(R.string.pref_key_make_default_browser),
+            context.getString(R.string.pref_key_show_search_suggestions),
+            context.getString(R.string.pref_key_show_visited_sites_bookmarks),
+            context.getString(R.string.pref_key_remote_debugging),
+            context.getString(R.string.pref_key_telemetry),
+            context.getString(R.string.pref_key_tracking_protection)
+        )
+
+        override val extras: Map<String, String>?
+            get() = mapOf(
+                "preferenceKey" to preferenceKey,
+                "enabled" to enabled.toString()
+            )
+
+        init {
+            // If the event is not in the allow list, we don't want to track it
+            if (!switchPreferenceTelemetryAllowList.contains(preferenceKey)) { throw IllegalArgumentException() }
+        }
+    }
 
     // Interaction Events
+    data class LibrarySelectedItem(val item: String) : Event() {
+        override val extras: Map<String, String>?
+            get() = mapOf("item" to item)
+    }
+
+    data class ErrorPageVisited(val errorType: ErrorType) : Event() {
+        override val extras: Map<String, String>?
+            get() = mapOf("errorType" to errorType.name)
+    }
+
     data class SearchBarTapped(val source: Source) : Event() {
         enum class Source { HOME, BROWSER }
         override val extras: Map<String, String>?
@@ -118,10 +171,10 @@ sealed class Event {
                 }
 
             val countLabel: String
-                get() = "${source.searchEngine.identifier}.$label"
+                get() = "${source.searchEngine.name.toLowerCase()}_$label"
 
             val sourceLabel: String
-                get() = "${source.descriptor}.$label"
+                get() = "${source.descriptor}_$label"
         }
 
         override val extras: Map<String, String>?
@@ -168,7 +221,8 @@ sealed class Event {
     data class BrowserMenuItemTapped(val item: Item) : Event() {
         enum class Item {
             SETTINGS, LIBRARY, HELP, DESKTOP_VIEW_ON, DESKTOP_VIEW_OFF, FIND_IN_PAGE, NEW_TAB,
-            NEW_PRIVATE_TAB, SHARE, REPORT_SITE_ISSUE, BACK, FORWARD, RELOAD, STOP, OPEN_IN_FENIX
+            NEW_PRIVATE_TAB, SHARE, REPORT_SITE_ISSUE, BACK, FORWARD, RELOAD, STOP, OPEN_IN_FENIX,
+            SAVE_TO_COLLECTION
         }
 
         override val extras: Map<String, String>?

@@ -5,7 +5,6 @@
 package org.mozilla.fenix.components.toolbar
 
 import android.util.TypedValue
-import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewGroup
 import mozilla.components.browser.session.Session
@@ -25,7 +24,7 @@ class TabCounterToolbarButton(
     private var reference: WeakReference<TabCounter> = WeakReference<TabCounter>(null)
 
     override fun createView(parent: ViewGroup): View {
-        sessionManager.register(sessionManagerObserver)
+        sessionManager.register(sessionManagerObserver, view = parent)
 
         val view = TabCounter(parent.context).apply {
             reference = WeakReference(this)
@@ -33,7 +32,6 @@ class TabCounterToolbarButton(
                     it.private == isPrivate
                 })
             setOnClickListener {
-                it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 showTabs.invoke()
             }
             contentDescription =

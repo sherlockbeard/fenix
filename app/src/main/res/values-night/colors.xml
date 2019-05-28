@@ -6,10 +6,22 @@
     <!-- Normal theme colors for dark mode -->
     <color name="primary_text_normal_theme">@color/primary_text_dark_theme</color>
     <color name="secondary_text_normal_theme">@color/secondary_text_dark_theme</color>
+    <color name="contrast_text_normal_theme">@color/contrast_text_dark_theme</color>
     <color name="foundation_normal_theme">@color/foundation_dark_theme</color>
     <color name="above_normal_theme">@color/above_dark_theme</color>
-    <color name="above_darkened_normal_theme">@color/above_darkened_dark_theme</color>
+    <color name="inset_normal_theme">@color/inset_dark_theme</color>
     <color name="accent_normal_theme">@color/accent_dark_theme</color>
     <color name="accent_bright_normal_theme">@color/accent_bright_dark_theme</color>
+    <color name="accent_high_contrast_normal_theme">@color/accent_high_contrast_dark_theme</color>
     <color name="neutral_normal_theme">@color/neutral_dark_theme</color>
+    <color name="neutral_faded_normal_theme">@color/neutral_faded_dark_theme</color>
+    <color name="shadow_normal_theme">@color/shadow_dark_theme</color>
+    <color name="destructive_normal_theme">@color/destructive_dark_theme</color>
+    <color name="scrimStart_normal_theme">@color/scrimStart_dark_theme</color>
+    <color name="scrimEnd_normal_theme">@color/scrimEnd_dark_theme</color>
+    <color name="toggle_off_knob_normal_theme">@color/toggle_off_knob_dark_theme</color>
+    <color name="toggle_off_track_normal_theme">@color/toggle_off_track_dark_theme</color>
+
+    <!-- Reader View colors -->
+    <color name="mozac_feature_readerview_text_color">@color/primary_text_dark_theme</color>
 </resources>

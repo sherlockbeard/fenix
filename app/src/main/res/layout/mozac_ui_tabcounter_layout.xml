@@ -19,7 +19,7 @@
             android:id="@+id/counter_box"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:contentDescription="@string/mozac_ui_tabcounter_description"
+            android:importantForAccessibility="no"
             android:src="@drawable/mozac_ui_tabcounter_box"/>
 
         <!-- This text size auto adjusts based on num digits in `TabCounter` -->
@@ -28,8 +28,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:layout_marginTop="1dp"
-            android:layout_marginEnd="1dp"
             android:textColor="?primaryText"
             android:textSize="12sp"
             android:textStyle="bold"

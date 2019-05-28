@@ -14,9 +14,25 @@ import org.mozilla.fenix.GleanMetrics.CustomTab
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.FindInPage
 import org.mozilla.fenix.GleanMetrics.Metrics
+import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.GleanMetrics.QuickActionSheet
 import org.mozilla.fenix.GleanMetrics.SearchDefaultEngine
 import org.mozilla.fenix.ext.components
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import mozilla.components.service.glean.BuildConfig
+import mozilla.components.service.glean.config.Configuration
+import org.mozilla.fenix.GleanMetrics.QrScanner
+import org.mozilla.fenix.GleanMetrics.Library
+import org.mozilla.fenix.GleanMetrics.ErrorPage
+import org.mozilla.fenix.GleanMetrics.SyncAccount
+import org.mozilla.fenix.GleanMetrics.SyncAuth
+import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.getPreferenceKey
+import org.mozilla.fenix.utils.Settings
 
 private class EventWrapper<T : Enum<T>>(
     private val recorder: ((Map<T, String>?) -> Unit),
@@ -150,6 +166,62 @@ private val Event.wrapper
         is Event.CustomTabsClosed -> EventWrapper<NoExtraKeys>(
             { CustomTab.closed.record(it) }
         )
+        is Event.UriOpened -> EventWrapper<NoExtraKeys>(
+            { Events.totalUriCount.add(1) }
+        )
+        is Event.QRScannerOpened -> EventWrapper<NoExtraKeys>(
+            { QrScanner.opened.record(it) }
+        )
+        is Event.QRScannerPromptDisplayed -> EventWrapper<NoExtraKeys>(
+            { QrScanner.promptDisplayed.record(it) }
+        )
+        is Event.QRScannerNavigationAllowed -> EventWrapper<NoExtraKeys>(
+            { QrScanner.navigationAllowed.record(it) }
+        )
+        is Event.QRScannerNavigationDenied -> EventWrapper<NoExtraKeys>(
+            { QrScanner.navigationDenied.record(it) }
+        )
+        is Event.LibraryOpened -> EventWrapper<NoExtraKeys>(
+            { Library.opened.record(it) }
+        )
+        is Event.LibraryClosed -> EventWrapper<NoExtraKeys>(
+            { Library.closed.record(it) }
+        )
+        is Event.LibrarySelectedItem -> EventWrapper(
+            { Library.selectedItem },
+            { Library.selectedItemKeys.valueOf(it) }
+        )
+        is Event.ErrorPageVisited -> EventWrapper(
+            { ErrorPage.visitedError },
+            { ErrorPage.visitedErrorKeys.valueOf(it) }
+        )
+        is Event.SyncAuthOpened -> EventWrapper<NoExtraKeys>(
+            { SyncAuth.opened.record(it) }
+        )
+        is Event.SyncAuthClosed -> EventWrapper<NoExtraKeys>(
+            { SyncAuth.closed.record(it) }
+        )
+        is Event.SyncAuthSignIn -> EventWrapper<NoExtraKeys>(
+            { SyncAuth.signIn.record(it) }
+        )
+        is Event.SyncAuthScanPairing -> EventWrapper<NoExtraKeys>(
+            { SyncAuth.scanPairing.record(it) }
+        )
+        is Event.SyncAuthCreateAccount -> EventWrapper<NoExtraKeys>(
+            { SyncAuth.createAccount.record(it) }
+        )
+        is Event.SyncAccountOpened -> EventWrapper<NoExtraKeys>(
+            { SyncAccount.opened.record(it) }
+        )
+        is Event.SyncAccountClosed -> EventWrapper<NoExtraKeys>(
+            { SyncAccount.closed.record(it) }
+        )
+        is Event.SyncAccountSyncNow -> EventWrapper<NoExtraKeys>(
+            { SyncAccount.syncNow.record(it) }
+        )
+        is Event.SyncAccountSignOut -> EventWrapper<NoExtraKeys>(
+            { SyncAccount.signOut.record(it) }
+        )
 
         // Don't track other events with Glean
         else -> null
@@ -157,33 +229,56 @@ private val Event.wrapper
 
 class GleanMetricsService(private val context: Context) : MetricsService {
     private var initialized = false
+    /*
+     * We need to keep an eye on when we are done starting so that we don't
+     * accidentally stop ourselves before we've ever started.
+     */
+    private lateinit var starter: Job
+
+    private val activationPing = ActivationPing(context)
 
     override fun start() {
         Glean.setUploadEnabled(true)
+
         if (initialized) return
-
-        Glean.initialize(context)
-
-        Metrics.apply {
-            defaultBrowser.set(Browsers.all(context).isDefaultBrowser)
-        }
-
-        SearchDefaultEngine.apply {
-            val defaultEngine = context
-                .components
-                .search
-                .searchEngineManager
-                .defaultSearchEngine ?: return@apply
-
-            code.set(defaultEngine.identifier)
-            name.set(defaultEngine.name)
-            submissionUrl.set(defaultEngine.buildSearchUrl(""))
-        }
-
         initialized = true
+
+        starter = CoroutineScope(Dispatchers.Default).launch {
+            Glean.registerPings(Pings)
+            Glean.initialize(context, Configuration(channel = BuildConfig.BUILD_TYPE))
+
+            Metrics.apply {
+                defaultBrowser.set(Browsers.all(context).isDefaultBrowser)
+                defaultMozBrowser.set(MozillaProductDetector.getMozillaBrowserDefault(context) ?: "")
+                mozillaProducts.set(MozillaProductDetector.getInstalledMozillaProducts(context))
+
+                val syncItemsKey = context.getPreferenceKey(R.string.pref_key_sync_syncing_items)
+                Settings.getInstance(context).preferences.getStringSet(syncItemsKey, setOf())?.toList()?.let {
+                    syncingItems.set(it)
+                }
+            }
+
+            SearchDefaultEngine.apply {
+                val defaultEngine = context
+                    .components
+                    .search
+                    .searchEngineManager
+                    .defaultSearchEngine ?: return@apply
+
+                code.set(defaultEngine.identifier)
+                name.set(defaultEngine.name)
+                submissionUrl.set(defaultEngine.buildSearchUrl(""))
+            }
+
+            activationPing.checkAndSend()
+        }
     }
 
     override fun stop() {
+        /*
+         * We cannot stop until we're done starting.
+         */
+        runBlocking { starter.join(); }
         Glean.setUploadEnabled(false)
     }
 

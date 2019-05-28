@@ -6,6 +6,7 @@ package org.mozilla.fenix.home.sessioncontrol
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.reactivex.Observable
@@ -13,26 +14,108 @@ import io.reactivex.Observer
 import io.reactivex.functions.Consumer
 import org.mozilla.fenix.R
 import org.mozilla.fenix.mvi.UIView
-import androidx.recyclerview.widget.ItemTouchHelper
 
-// Convert HomeState into a data structure HomeAdapter understands
-@SuppressWarnings("ComplexMethod")
-private fun SessionControlState.toAdapterList(): List<AdapterItem> {
+val noTabMessage = AdapterItem.NoContentMessage(
+    R.drawable.ic_tabs,
+    R.string.no_open_tabs_header,
+    R.string.no_open_tabs_description
+)
+
+val noCollectionMessage = AdapterItem.NoContentMessage(
+    R.drawable.ic_tab_collection,
+    R.string.no_collections_header,
+    R.string.no_collections_description
+)
+
+private fun normalModeAdapterItems(
+    tabs: List<Tab>,
+    collections: List<TabCollection>,
+    expandedCollections: Set<Long>
+): List<AdapterItem> {
     val items = mutableListOf<AdapterItem>()
+    items.add(AdapterItem.TabHeader(false, tabs.isNotEmpty()))
 
     if (tabs.isNotEmpty()) {
-        items.add(AdapterItem.TabHeader)
-        tabs.reversed().map(AdapterItem::TabItem).forEach { items.add(it) }
-        if (mode == Mode.Private) {
-            items.add(AdapterItem.DeleteTabs)
+        items.addAll(tabs.reversed().map(AdapterItem::TabItem))
+        items.add(AdapterItem.SaveTabGroup)
+    } else {
+        items.add(noTabMessage)
+    }
+
+    items.add(AdapterItem.CollectionHeader)
+    if (collections.isNotEmpty()) {
+
+        // If the collection is expanded, we want to add all of its tabs beneath it in the adapter
+        collections.map {
+            AdapterItem.CollectionItem(it, expandedCollections.contains(it.id))
+        }.forEach {
+            items.add(it)
+            if (it.expanded) {
+                items.addAll(collectionTabItems(it.collection))
+            }
         }
     } else {
-        if (mode == Mode.Private) {
-            items.add(AdapterItem.PrivateBrowsingDescription)
-        }
+        items.add(noCollectionMessage)
     }
 
     return items
+}
+
+private fun privateModeAdapterItems(tabs: List<Tab>): List<AdapterItem> {
+    val items = mutableListOf<AdapterItem>()
+    items.add(AdapterItem.TabHeader(true, tabs.isNotEmpty()))
+
+    if (tabs.isNotEmpty()) {
+        items.addAll(tabs.reversed().map(AdapterItem::TabItem))
+    } else {
+        items.add(AdapterItem.PrivateBrowsingDescription)
+    }
+
+    return items
+}
+
+private fun onboardingAdapterItems(onboardingState: OnboardingState): List<AdapterItem> {
+    val items: MutableList<AdapterItem> = mutableListOf(AdapterItem.OnboardingHeader)
+
+    // Customize FxA items based on where we are with the account state:
+    items.addAll(when (onboardingState) {
+        OnboardingState.SignedOut -> {
+            listOf(
+                AdapterItem.OnboardingSectionHeader { it.getString(R.string.onboarding_fxa_section_header) },
+                AdapterItem.OnboardingFirefoxAccount(onboardingState)
+            )
+        }
+        OnboardingState.AutoSignedIn -> {
+            listOf(
+                AdapterItem.OnboardingFirefoxAccount(onboardingState)
+            )
+        }
+        else -> listOf()
+    })
+
+    items.addAll(listOf(
+        AdapterItem.OnboardingSectionHeader {
+            val appName = it.getString(R.string.app_name)
+            it.getString(R.string.onboarding_feature_section_header, appName)
+        },
+        AdapterItem.OnboardingThemePicker,
+        AdapterItem.OnboardingTrackingProtection,
+        AdapterItem.OnboardingPrivateBrowsing,
+        AdapterItem.OnboardingPrivacyNotice,
+        AdapterItem.OnboardingFinish
+    ))
+
+    return items
+}
+
+private fun SessionControlState.toAdapterList(): List<AdapterItem> = when (mode) {
+    is Mode.Normal -> normalModeAdapterItems(tabs, collections, expandedCollections)
+    is Mode.Private -> privateModeAdapterItems(tabs)
+    is Mode.Onboarding -> onboardingAdapterItems(mode.state)
+}
+
+private fun collectionTabItems(collection: TabCollection) = collection.tabs.mapIndexed { index, tab ->
+        AdapterItem.TabInCollectionItem(collection, tab, index == collection.tabs.lastIndex)
 }
 
 class SessionControlUIView(
@@ -56,6 +139,7 @@ class SessionControlUIView(
         view.apply {
             adapter = sessionControlAdapter
             layoutManager = LinearLayoutManager(container.context)
+            itemAnimator = null // TODO #2785: Remove this line
             val itemTouchHelper =
                 ItemTouchHelper(
                     SwipeToDeleteCallback(
@@ -67,11 +151,7 @@ class SessionControlUIView(
     }
 
     override fun updateView() = Consumer<SessionControlState> {
-        sessionControlAdapter.reloadData(it.toAdapterList())
-
-        // There is a current bug in the combination of MotionLayout~alhpa4 and RecyclerView where it doesn't think
-        // it has to redraw itself. For some reason calling scrollBy forces this to happen every time
-        // https://stackoverflow.com/a/42549611
-        view.scrollBy(0, 0)
+        sessionControlAdapter.submitList(it.toAdapterList())
+        actionEmitter.onNext(SessionControlAction.ReloadData)
     }
 }

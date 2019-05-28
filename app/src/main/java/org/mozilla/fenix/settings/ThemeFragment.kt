@@ -18,18 +18,14 @@ class ThemeFragment : PreferenceFragmentCompat() {
     private lateinit var radioAutoBatteryTheme: RadioButtonPreference
     private lateinit var radioFollowDeviceTheme: RadioButtonPreference
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        (activity as AppCompatActivity).title = getString(R.string.preferences_theme)
-        (activity as AppCompatActivity).supportActionBar?.show()
-    }
-
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.theme_preferences, rootKey)
     }
 
     override fun onResume() {
         super.onResume()
+        (activity as AppCompatActivity).title = getString(R.string.preferences_theme)
+        (activity as AppCompatActivity).supportActionBar?.show()
         setupPreferences()
     }
 
@@ -98,8 +94,12 @@ class ThemeFragment : PreferenceFragmentCompat() {
     }
 
     private fun setNewTheme(mode: Int) {
+        if (AppCompatDelegate.getDefaultNightMode() == mode) return
         AppCompatDelegate.setDefaultNightMode(mode)
         activity?.recreate()
+        with(requireComponents.core) {
+            engine.settings.preferredColorScheme = getPreferredColorScheme()
+        }
         requireComponents.useCases.sessionUseCases.reload.invoke()
     }
 }

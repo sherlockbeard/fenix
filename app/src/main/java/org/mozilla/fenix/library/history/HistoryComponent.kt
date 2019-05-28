@@ -4,12 +4,14 @@
 package org.mozilla.fenix.library.history
 
 import android.view.ViewGroup
-import org.mozilla.fenix.test.Mockable
+import org.mozilla.fenix.mvi.ViewState
+import org.mozilla.fenix.mvi.Change
 import org.mozilla.fenix.mvi.Action
 import org.mozilla.fenix.mvi.ActionBusFactory
-import org.mozilla.fenix.mvi.Change
 import org.mozilla.fenix.mvi.UIComponent
-import org.mozilla.fenix.mvi.ViewState
+import org.mozilla.fenix.mvi.UIComponentViewModelBase
+import org.mozilla.fenix.mvi.UIComponentViewModelProvider
+import org.mozilla.fenix.test.Mockable
 
 data class HistoryItem(val id: Int, val title: String, val url: String, val visitedAt: Long)
 
@@ -17,43 +19,18 @@ data class HistoryItem(val id: Int, val title: String, val url: String, val visi
 class HistoryComponent(
     private val container: ViewGroup,
     bus: ActionBusFactory,
-    override var initialState: HistoryState = HistoryState(emptyList(), HistoryState.Mode.Normal)
+    viewModelProvider: UIComponentViewModelProvider<HistoryState, HistoryChange>
 ) :
     UIComponent<HistoryState, HistoryAction, HistoryChange>(
         bus.getManagedEmitter(HistoryAction::class.java),
-        bus.getSafeManagedObservable(HistoryChange::class.java)
+        bus.getSafeManagedObservable(HistoryChange::class.java),
+        viewModelProvider
     ) {
-
-    override val reducer: (HistoryState, HistoryChange) -> HistoryState = { state, change ->
-        when (change) {
-            is HistoryChange.Change -> state.copy(mode = HistoryState.Mode.Normal, items = change.list)
-            is HistoryChange.EnterEditMode -> state.copy(mode = HistoryState.Mode.Editing(listOf(change.item)))
-            is HistoryChange.AddItemForRemoval -> {
-                val mode = state.mode
-                if (mode is HistoryState.Mode.Editing) {
-                    val items = mode.selectedItems + listOf(change.item)
-                    state.copy(mode = mode.copy(selectedItems = items))
-                } else {
-                    state
-                }
-            }
-            is HistoryChange.RemoveItemForRemoval -> {
-                val mode = state.mode
-                if (mode is HistoryState.Mode.Editing) {
-                    val items = mode.selectedItems.filter { it.id != change.item.id }
-                    state.copy(mode = mode.copy(selectedItems = items))
-                } else {
-                    state
-                }
-            }
-            is HistoryChange.ExitEditMode -> state.copy(mode = HistoryState.Mode.Normal)
-        }
-    }
 
     override fun initView() = HistoryUIView(container, actionEmitter, changesObservable)
 
     init {
-        render(reducer)
+        bind()
     }
 }
 
@@ -65,11 +42,12 @@ data class HistoryState(val items: List<HistoryItem>, val mode: Mode) : ViewStat
 }
 
 sealed class HistoryAction : Action {
-    data class Select(val item: HistoryItem) : HistoryAction()
+    data class Open(val item: HistoryItem) : HistoryAction()
     data class EnterEditMode(val item: HistoryItem) : HistoryAction()
     object BackPressed : HistoryAction()
     data class AddItemForRemoval(val item: HistoryItem) : HistoryAction()
     data class RemoveItemForRemoval(val item: HistoryItem) : HistoryAction()
+    object SwitchMode : HistoryAction()
 
     sealed class Delete : HistoryAction() {
         object All : Delete()
@@ -84,4 +62,40 @@ sealed class HistoryChange : Change {
     object ExitEditMode : HistoryChange()
     data class AddItemForRemoval(val item: HistoryItem) : HistoryChange()
     data class RemoveItemForRemoval(val item: HistoryItem) : HistoryChange()
+}
+
+class HistoryViewModel(
+    initialState: HistoryState
+) : UIComponentViewModelBase<HistoryState, HistoryChange>(initialState, reducer) {
+    companion object {
+        fun create() = HistoryViewModel(HistoryState(emptyList(), HistoryState.Mode.Normal))
+        val reducer: (HistoryState, HistoryChange) -> HistoryState = { state, change ->
+            when (change) {
+                is HistoryChange.Change -> state.copy(mode = HistoryState.Mode.Normal, items = change.list)
+                is HistoryChange.EnterEditMode -> state.copy(mode = HistoryState.Mode.Editing(listOf(change.item)))
+                is HistoryChange.AddItemForRemoval -> {
+                    val mode = state.mode
+                    if (mode is HistoryState.Mode.Editing) {
+                        val items = mode.selectedItems + listOf(change.item)
+                        state.copy(mode = mode.copy(selectedItems = items))
+                    } else {
+                        state
+                    }
+                }
+                is HistoryChange.RemoveItemForRemoval -> {
+                    var mode = state.mode
+
+                    if (mode is HistoryState.Mode.Editing) {
+                        val items = mode.selectedItems.filter { it.id != change.item.id }
+                        mode = if (items.isEmpty()) HistoryState.Mode.Normal else HistoryState.Mode.Editing(items)
+
+                        state.copy(mode = mode)
+                    } else {
+                        state
+                    }
+                }
+                is HistoryChange.ExitEditMode -> state.copy(mode = HistoryState.Mode.Normal)
+            }
+        }
+    }
 }

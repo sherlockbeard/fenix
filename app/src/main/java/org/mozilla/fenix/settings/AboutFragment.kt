@@ -11,9 +11,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.pm.PackageInfoCompat
 import kotlinx.android.synthetic.main.fragment_about.*
+import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.R
-import org.mozilla.geckoview.BuildConfig
+import org.mozilla.geckoview.BuildConfig as GeckoViewBuildConfig
 
 class AboutFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -28,8 +30,8 @@ class AboutFragment : Fragment() {
 
         val aboutText = try {
             val packageInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-            val geckoVersion = packageInfo.versionCode.toString() + " \uD83E\uDD8E " +
-                    BuildConfig.MOZ_APP_VERSION + "-" + BuildConfig.MOZ_APP_BUILDID
+            val geckoVersion = PackageInfoCompat.getLongVersionCode(packageInfo).toString() + " \uD83E\uDD8E " +
+                    GeckoViewBuildConfig.MOZ_APP_VERSION + "-" + GeckoViewBuildConfig.MOZ_APP_BUILDID
             String.format(
                 "%s (Build #%s)",
                 packageInfo.versionName,
@@ -39,7 +41,7 @@ class AboutFragment : Fragment() {
             ""
         }
 
-        val buildDate = org.mozilla.fenix.BuildConfig.BUILD_DATE
+        val buildDate = BuildConfig.BUILD_DATE
         val content = resources.getString(R.string.about_content, appName)
 
         about_text.text = aboutText

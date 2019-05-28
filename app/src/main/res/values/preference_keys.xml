@@ -9,12 +9,17 @@
     <string name="pref_key_credit_cards_addresses" translatable="false">pref_key_credit_cards_addresses</string>
     <string name="pref_key_site_permissions" translatable="false">pref_key_site_permissions</string>
     <string name="pref_key_accessibility" translatable="false">pref_key_accessibility</string>
+    <string name="pref_key_accessibility_auto_size" translatable="false">pref_key_accessibility_auto_size</string>
+    <string name="pref_key_accessibility_font_scale" translatable="false">pref_key_accessibility_font_scale</string>
     <string name="pref_key_language" translatable="false">pref_key_language</string>
     <string name="pref_key_data_choices" translatable="false">pref_key_data_choices</string>
+    <string name="pref_key_delete_browsing_data" translatable="false">pref_key_delete_browsing_data</string>
     <string name="pref_key_help" translatable="false">pref_key_help</string>
     <string name="pref_key_rate" translatable="false">pref_key_rate</string>
     <string name="pref_key_feedback" translatable="false">pref_key_feedback</string>
     <string name="pref_key_about" translatable="false">pref_key_about</string>
+    <string name="pref_key_privacy_notice" translatable="false">pref_key_privacy_notice</string>
+    <string name="pref_key_your_rights" translatable="false">pref_key_your_rights</string>
     <string name="pref_key_account" translatable="false">pref_key_account</string>
     <string name="pref_key_sign_in" translatable="false">pref_key_sign_in</string>
     <string name="pref_key_private_mode" translatable="false">pref_key_private_mode</string>
@@ -30,16 +35,21 @@
 
     <!-- Account Settings -->
     <string name="pref_key_account_category" translatable="false">pref_key_account_category</string>
+    <string name="pref_key_sync_device_name" translatable="false">pref_key_sync_device_name</string>
     <string name="pref_key_sync_now" translatable="false">pref_key_sync_now</string>
     <string name="pref_key_sync_history" translatable="false">pref_key_sync_history</string>
+    <string name="pref_key_sync_bookmarks" translatable="false">pref_key_sync_bookmarks</string>
     <string name="pref_key_sign_out" translatable="false">pref_key_sign_out</string>
     <string name="pref_key_cached_account" translatable="false">pref_key_cached_account</string>
+    <string name="pref_key_sync_pair" translatable="false">pref_key_sync_pair</string>
+    <string name="pref_key_sync_sign_in" translatable="false">pref_key_sync_sign_in</string>
+    <string name="pref_key_sync_create_account" translatable="false">pref_key_sync_create_account</string>
+    <string name="pref_key_sync_syncing_items" translatable="false">pref_key_sync_syncing_items</string>
 
     <!-- Search Settings -->
     <string name="pref_key_show_search_suggestions" translatable="false">pref_key_show_search_suggestions</string>
-
-    <string name="pref_key_bounce_quick_action" translatable="false">pref_key_bounce_quick_action</string>
     <string name="pref_key_show_visited_sites_bookmarks" translatable="false">pref_key_show_visited_sites_bookmarks</string>
+
     <!-- Site Permissions Settings -->
     <string name="pref_key_optimize" translatable="false">pref_key_optimize</string>
     <string name="pref_key_show_site_exceptions" translatable="false">pref_key_show_site_exceptions</string>
@@ -62,4 +72,8 @@
     <string name="pref_key_tracking_protection_settings" translatable="false">pref_key_tracking_protection_settings</string>
     <string name="pref_key_tracking_protection" translatable="false">pref_key_tracking_protection</string>
     <string name="pref_key_tracking_protection_exceptions" translatable="false">pref_key_tracking_protection_exceptions</string>
+
+    <!-- Quick Action Sheet -->
+    <string name="pref_key_bounce_quick_action" translatable="false">pref_key_bounce_quick_action</string>
+    <string name="pref_key_reader_mode_notification" translatable="false">pref_key_reader_mode_notification</string>
 </resources>

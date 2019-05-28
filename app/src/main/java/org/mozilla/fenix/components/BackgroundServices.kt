@@ -5,22 +5,34 @@
 package org.mozilla.fenix.components
 
 import android.content.Context
+import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
+import mozilla.components.concept.sync.DeviceCapability
+import mozilla.components.concept.sync.DeviceEvent
+import mozilla.components.concept.sync.DeviceEventsObserver
+import mozilla.components.concept.sync.DeviceType
 import mozilla.components.feature.sync.BackgroundSyncManager
 import mozilla.components.feature.sync.GlobalSyncableStoreProvider
 import mozilla.components.service.fxa.Config
-import mozilla.components.service.fxa.FxaAccountManager
+import mozilla.components.service.fxa.manager.DeviceTuple
+import mozilla.components.service.fxa.manager.FxaAccountManager
+import org.mozilla.fenix.R
+import org.mozilla.fenix.test.Mockable
 
 /**
  * Component group for background services. These are the components that need to be accessed from within a
  * background worker.
  */
+@Mockable
 class BackgroundServices(
     context: Context,
-    historyStorage: PlacesHistoryStorage
+    historyStorage: PlacesHistoryStorage,
+    bookmarkStorage: PlacesBookmarksStorage,
+    notificationManager: NotificationManager
 ) {
     companion object {
         const val CLIENT_ID = "a2270f727f45f648"
@@ -35,15 +47,32 @@ class BackgroundServices(
     private val config = Config.release(CLIENT_ID, REDIRECT_URL)
 
     init {
-        // Make the "history" store accessible to workers spawned by the sync manager.
+        // Make the "history" and "bookmark" stores accessible to workers spawned by the sync manager.
         GlobalSyncableStoreProvider.configureStore("history" to historyStorage)
+        GlobalSyncableStoreProvider.configureStore("bookmarks" to bookmarkStorage)
     }
 
     val syncManager = BackgroundSyncManager("https://identity.mozilla.com/apps/oldsync").also {
         it.addStore("history")
+        it.addStore("bookmarks")
     }
 
-    val accountManager = FxaAccountManager(context, config, scopes, syncManager).also {
+    private val deviceEventObserver = object : DeviceEventsObserver {
+        override fun onEvents(events: List<DeviceEvent>) {
+            events.filter { it is DeviceEvent.TabReceived }.forEach {
+                notificationManager.showReceivedTabs(it as DeviceEvent.TabReceived)
+            }
+        }
+    }
+
+    val accountManager = FxaAccountManager(
+        context,
+        config,
+        scopes,
+        DeviceTuple(context.getString(R.string.app_name), DeviceType.MOBILE, listOf(DeviceCapability.SEND_TAB)),
+        syncManager
+    ).also {
+        it.registerForDeviceEvents(deviceEventObserver, ProcessLifecycleOwner.get(), true)
         CoroutineScope(Dispatchers.Main).launch { it.initAsync().await() }
     }
 }

@@ -6,13 +6,19 @@ package org.mozilla.fenix.ext
 
 import android.view.View
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mozilla.fenix.components.FenixSnackbar
 
-fun CoroutineScope.allowUndo(view: View, message: String, undoActionTitle: String, operation: suspend () -> Unit) {
-    val undoJob = launch(Dispatchers.IO) {
+fun CoroutineScope.allowUndo(
+    view: View,
+    message: String,
+    undoActionTitle: String,
+    onCancel: suspend () -> Unit = {},
+    operation: suspend () -> Unit
+) {
+    val undoJob = launch(Main) {
         delay(UNDO_DELAY)
         operation.invoke()
     }
@@ -20,6 +26,9 @@ fun CoroutineScope.allowUndo(view: View, message: String, undoActionTitle: Strin
         .setText(message)
         .setAction(undoActionTitle) {
             undoJob.cancel()
+            launch(Main) {
+                onCancel.invoke()
+            }
         }.show()
 }
 

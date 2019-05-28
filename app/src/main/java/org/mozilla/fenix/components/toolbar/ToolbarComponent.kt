@@ -12,34 +12,30 @@ import mozilla.components.browser.search.SearchEngine
 import mozilla.components.browser.toolbar.BrowserToolbar
 import org.mozilla.fenix.DefaultThemeManager
 import org.mozilla.fenix.R
+import org.mozilla.fenix.mvi.ViewState
+import org.mozilla.fenix.mvi.Change
 import org.mozilla.fenix.mvi.Action
 import org.mozilla.fenix.mvi.ActionBusFactory
-import org.mozilla.fenix.mvi.Change
 import org.mozilla.fenix.mvi.Reducer
 import org.mozilla.fenix.mvi.UIComponent
-import org.mozilla.fenix.mvi.ViewState
+import org.mozilla.fenix.mvi.UIComponentViewModelBase
+import org.mozilla.fenix.mvi.UIComponentViewModelProvider
 
 class ToolbarComponent(
     private val container: ViewGroup,
     bus: ActionBusFactory,
     private val sessionId: String?,
     private val isPrivate: Boolean,
-    override var initialState: SearchState = SearchState("", false),
-    private val engineIconView: ImageView? = null
+    private val engineIconView: ImageView? = null,
+    viewModelProvider: UIComponentViewModelProvider<SearchState, SearchChange>
 ) :
     UIComponent<SearchState, SearchAction, SearchChange>(
         bus.getManagedEmitter(SearchAction::class.java),
-        bus.getSafeManagedObservable(SearchChange::class.java)
+        bus.getSafeManagedObservable(SearchChange::class.java),
+        viewModelProvider
     ) {
 
     fun getView(): BrowserToolbar = uiView.toolbar
-
-    override val reducer: Reducer<SearchState, SearchChange> = { state, change ->
-        when (change) {
-            is SearchChange.SearchShortcutEngineSelected ->
-                state.copy(engine = change.engine)
-        }
-    }
 
     override fun initView() = ToolbarUIView(
         sessionId,
@@ -51,7 +47,7 @@ class ToolbarComponent(
     )
 
     init {
-        render(reducer)
+        bind()
         applyTheme()
     }
 
@@ -73,8 +69,10 @@ class ToolbarComponent(
 
 data class SearchState(
     val query: String,
+    val searchTerm: String,
     val isEditing: Boolean,
-    val engine: SearchEngine? = null
+    val engine: SearchEngine? = null,
+    val focused: Boolean = isEditing
 ) : ViewState
 
 sealed class SearchAction : Action {
@@ -87,5 +85,22 @@ sealed class SearchAction : Action {
 }
 
 sealed class SearchChange : Change {
+    object ToolbarRequestedFocus : SearchChange()
+    object ToolbarClearedFocus : SearchChange()
     data class SearchShortcutEngineSelected(val engine: SearchEngine) : SearchChange()
+}
+
+class ToolbarViewModel(initialState: SearchState) :
+    UIComponentViewModelBase<SearchState, SearchChange>(initialState, reducer) {
+
+    companion object {
+        val reducer: Reducer<SearchState, SearchChange> = { state, change ->
+            when (change) {
+                is SearchChange.ToolbarClearedFocus -> state.copy(focused = false)
+                is SearchChange.ToolbarRequestedFocus -> state.copy(focused = true)
+                is SearchChange.SearchShortcutEngineSelected ->
+                    state.copy(engine = change.engine)
+            }
+        }
+    }
 }

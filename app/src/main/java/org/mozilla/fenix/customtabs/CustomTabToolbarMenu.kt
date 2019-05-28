@@ -9,8 +9,9 @@ import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.item.BrowserMenuDivider
 import mozilla.components.browser.menu.item.BrowserMenuImageText
 import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
-import mozilla.components.browser.menu.item.BrowserMenuSwitch
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
+import mozilla.components.browser.session.Session
+import mozilla.components.browser.session.SessionManager
 import org.mozilla.fenix.DefaultThemeManager
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
@@ -18,10 +19,14 @@ import org.mozilla.fenix.ext.components
 
 class CustomTabToolbarMenu(
     private val context: Context,
-    private val requestDesktopStateProvider: () -> Boolean = { false },
+    private val sessionManager: SessionManager,
+    private val sessionId: String?,
     private val onItemTapped: (ToolbarMenu.Item) -> Unit = {}
 ) : ToolbarMenu {
     override val menuBuilder by lazy { BrowserMenuBuilder(menuItems) }
+
+    private val session: Session?
+        get() = sessionId?.let { sessionManager.findSessionById(it) }
 
     override val menuToolbar by lazy {
         val back = BrowserMenuItemToolbar.TwoStateButton(
@@ -32,7 +37,7 @@ class CustomTabToolbarMenu(
                 context
             ),
             isInPrimaryState = {
-                context.components.core.sessionManager.selectedSession?.canGoBack ?: true
+                session?.canGoBack ?: true
             },
             secondaryImageTintResource = DefaultThemeManager.resolveAttribute(
                 R.attr.neutral,
@@ -51,7 +56,7 @@ class CustomTabToolbarMenu(
                 context
             ),
             isInPrimaryState = {
-                context.components.core.sessionManager.selectedSession?.canGoForward ?: true
+                session?.canGoForward ?: true
             },
             secondaryImageTintResource = DefaultThemeManager.resolveAttribute(
                 R.attr.neutral,
@@ -70,7 +75,7 @@ class CustomTabToolbarMenu(
                 context
             ),
             isInPrimaryState = {
-                val loading = context.components.core.sessionManager.selectedSession?.loading
+                val loading = session?.loading
                 loading == false
             },
             secondaryImageResource = mozilla.components.ui.icons.R.drawable.mozac_ic_stop,
@@ -81,7 +86,7 @@ class CustomTabToolbarMenu(
             ),
             disableInSecondaryState = false
         ) {
-            if (context.components.core.sessionManager.selectedSession?.loading == true) {
+            if (session?.loading == true) {
                 onItemTapped.invoke(ToolbarMenu.Item.Stop)
             } else {
                 onItemTapped.invoke(ToolbarMenu.Item.Reload)
@@ -93,16 +98,24 @@ class CustomTabToolbarMenu(
 
     private val menuItems by lazy {
         listOf(
-            SimpleBrowserMenuItem(
-                {
-                    val appName = context.getString(R.string.app_name)
-                    context.getString(R.string.browser_menu_powered_by, appName).toUpperCase()
-                }(),
-                ToolbarMenu.CAPTION_TEXT_SIZE,
-                DefaultThemeManager.resolveAttribute(R.attr.primaryText, context)
-            ),
+            menuToolbar,
 
             BrowserMenuDivider(),
+
+            BrowserMenuImageText(
+                context.getString(R.string.browser_menu_share),
+                R.drawable.mozac_ic_share,
+                textColorResource = DefaultThemeManager.resolveAttribute(
+                    R.attr.primaryText,
+                    context
+                ),
+                iconTintColorResource = DefaultThemeManager.resolveAttribute(
+                    R.attr.primaryText,
+                    context
+                )
+            ) {
+                onItemTapped.invoke(ToolbarMenu.Item.Share)
+            },
 
             SimpleBrowserMenuItem(
                 {
@@ -117,27 +130,16 @@ class CustomTabToolbarMenu(
                 onItemTapped.invoke(ToolbarMenu.Item.OpenInFenix)
             },
 
-            BrowserMenuImageText(
-                context.getString(R.string.browser_menu_find_in_page),
-                R.drawable.mozac_ic_search,
-                DefaultThemeManager.resolveAttribute(R.attr.primaryText, context)
-            ) {
-                onItemTapped.invoke(ToolbarMenu.Item.FindInPage)
-            },
+            BrowserMenuDivider(),
 
-            BrowserMenuSwitch(context.getString(R.string.browser_menu_desktop_site),
-                requestDesktopStateProvider, { checked ->
-                    onItemTapped.invoke(ToolbarMenu.Item.RequestDesktop(checked))
-                }),
-
-            BrowserMenuImageText(
-                context.getString(R.string.browser_menu_share),
-                R.drawable.mozac_ic_share,
+            SimpleBrowserMenuItem(
+                {
+                    val appName = context.getString(R.string.app_name)
+                    context.getString(R.string.browser_menu_powered_by, appName).toUpperCase()
+                }(),
+                ToolbarMenu.CAPTION_TEXT_SIZE,
                 DefaultThemeManager.resolveAttribute(R.attr.primaryText, context)
-            ) {
-                onItemTapped.invoke(ToolbarMenu.Item.Share)
-            },
-            menuToolbar
+            )
         )
     }
 }

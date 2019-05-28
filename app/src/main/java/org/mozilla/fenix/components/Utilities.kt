@@ -5,16 +5,16 @@
 package org.mozilla.fenix.components
 
 import android.content.Context
-import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.session.SessionManager
 import mozilla.components.feature.intent.IntentProcessor
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
-import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.test.Mockable
 
 /**
  * Component group for miscellaneous components.
  */
+@Mockable
 class Utilities(
     private val context: Context,
     private val sessionManager: SessionManager,
@@ -33,7 +33,10 @@ class Utilities(
         IntentProcessor(sessionUseCases, sessionManager, searchUseCases, context, isPrivate = true)
     }
 
-    val icons by lazy {
-        BrowserIcons(context, context.components.core.client)
+    /**
+     * Provides notification functionality, manages notification channels.
+     */
+    val notificationManager by lazy {
+        NotificationManager(context)
     }
 }

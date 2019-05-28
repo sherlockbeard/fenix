@@ -15,7 +15,7 @@ import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.support.ktx.android.content.res.pxToDp
 import org.mozilla.fenix.R
-import org.mozilla.fenix.ext.getColorFromAttr
+import org.mozilla.fenix.ext.getColorIntFromAttr
 import org.mozilla.fenix.library.bookmarks.BookmarksSharedViewModel
 
 class SelectBookmarkFolderAdapter(private val sharedViewModel: BookmarksSharedViewModel) :
@@ -86,9 +86,9 @@ class SelectBookmarkFolderAdapter(private val sharedViewModel: BookmarksSharedVi
         fun bind(folder: BookmarkNodeWithDepth, selected: Boolean, selectionInterface: SelectionInterface) {
             val backgroundTint =
                 if (selected) {
-                    R.attr.accent.getColorFromAttr(containerView!!.context)
+                    R.attr.accentBright.getColorIntFromAttr(containerView!!.context)
                 } else {
-                    R.attr.neutral.getColorFromAttr(containerView!!.context)
+                    R.attr.neutral.getColorIntFromAttr(containerView!!.context)
                 }
 
             val backgroundTintList = ContextCompat.getColorStateList(containerView.context, backgroundTint)
@@ -119,7 +119,7 @@ class SelectBookmarkFolderAdapter(private val sharedViewModel: BookmarksSharedVi
         return if (this != null) {
             val newList = list.plus(listOf(BookmarkNodeWithDepth(depth, this, this.parentGuid)))
             newList.plus(
-                children?.filter { it?.type == BookmarkNodeType.FOLDER }
+                children?.filter { it.type == BookmarkNodeType.FOLDER }
                     ?.flatMap { it.convertToFolderDepthTree(depth + 1) }
                     ?: listOf())
         } else listOf()

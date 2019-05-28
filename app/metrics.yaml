@@ -57,10 +57,10 @@ events:
       source:
         description: >
           A string that tells us how the user performed the search. Possible values are:
-          * default.action
-          * default.suggestion
-          * shortcut.action
-          * shortcut.suggestion
+          * default_action
+          * default_suggestion
+          * shortcut_action
+          * shortcut_suggestion
 
     bugs:
     - 959
@@ -123,33 +123,46 @@ events:
     notification_emails:
     - fenix-core@mozilla.com
     expires: "2020-03-01"
+  total_uri_count:
+    type: counter
+    description: >
+      A counter of URIs visited by the user in the current session, including page reloads. This does not include background page requests and URIs from embedded pages or private browsing.
+    send_in_pings:
+    - metrics
+    bugs:
+    - 1301
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/1785
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
 
 crash_reporter:
-    opened:
-      type: event
-      description: >
-        The crash reporter was displayed
-      bugs:
-      - 1040
-      data_reviews:
-      - TBD
-      notification_emails:
-      - fenix-core@mozilla.com
-      expires: "2020-03-01"
-    closed:
-      type: event
-      description: >
-        The crash reporter was closed
-      extra_keys:
-        crash_submitted:
-          description: "A boolean that tells us whether or not the user submitted a crash report"
-      bugs:
-      - 1040
-      data_reviews:
-      - TBD
-      notification_emails:
-      - fenix-core@mozilla.com
-      expires: "2020-03-01"
+  opened:
+    type: event
+    description: >
+      The crash reporter was displayed
+    bugs:
+    - 1040
+    data_reviews:
+    - TBD
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  closed:
+    type: event
+    description: >
+      The crash reporter was closed
+    extra_keys:
+      crash_submitted:
+        description: "A boolean that tells us whether or not the user submitted a crash report"
+    bugs:
+    - 1040
+    data_reviews:
+    - TBD
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
 
 context_menu:
   item_tapped:
@@ -250,7 +263,6 @@ quick_action_sheet:
     data_reviews:
     - https://github.com/mozilla-mobile/fenix/pull/1362#issuecomment-479668466
     notification_emails:
-
     - fenix-core@mozilla.com
     expires: "2020-03-01"
   share_tapped:
@@ -315,7 +327,7 @@ metrics:
   search_count:
     type: labeled_counter
     description: >
-      The labels for this counter are `<search-engine-name>.<source>`.
+      The labels for this counter are `<search-engine-name>_<source>`.
 
       If the search engine is bundled with Fenix `search-engine-name` will be the name of the search engine. If it's a
       custom search engine (defined: https://github.com/mozilla-mobile/fenix/issues/1607) the value will be `custom`.
@@ -330,6 +342,46 @@ metrics:
     notification_emails:
     - fenix-core@mozilla.com
     expires: "2019-09-01"
+  mozilla_products:
+    type: string_list
+    description: >
+      A list of all the Mozilla products installed on device. We currently scan for: Firefox, Firefox Beta,
+       Firefox Aurora, Firefox Nightly, Firefox Fdroid, Firefox Lite, Reference Browser, Reference Browser Debug,
+       Fenix, Focus, and Lockbox.
+    send_in_pings:
+    - metrics
+    bugs:
+    - 1192
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/1953/
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2019-09-01"
+  default_moz_browser:
+    type: string
+    description: >
+      The name of the default browser on device if and only if it's a Mozilla owned product, otherwise empty string
+    send_in_pings:
+    - metrics
+    bugs:
+    - 1192
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/1953/
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2019-09-01"
+  syncing_items:
+    type: string_list
+    description: >
+      The preference keys for the switch preferences the user has enabled to sync with FxA. We currently track:
+      Bookmarks and History.
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
 
 search.default_engine:
   code:
@@ -536,6 +588,263 @@ custom_tab:
     - 977
     data_reviews:
     - https://github.com/mozilla-mobile/fenix/pull/1697
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+
+preferences:
+  preference_toggled:
+    type: event
+    description: >
+      A user toggled a preference switch in settings
+    extra_keys:
+      preference_key:
+        description: "The preference key for the switch preference the user toggled. We currently track: leakcanary,
+        make_default_browser, show_search_suggestions, show_visited_sites_bookmarks, remote_debugging, telemetry,
+        tracking_protection"
+      enabled:
+        description: "Whether or not the preference is *now* enabled"
+    bugs:
+    - 975
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/1896
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+
+activation:
+  identifier:
+    type: string
+    lifetime: ping
+    description: >
+      An hashed and salted version of the Google Advertising ID from the device.
+      This will never be sent in a ping that also contains the client_id.
+    send_in_pings:
+    - activation
+    bugs:
+    - 1538011
+    - 1501822
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/1707#issuecomment-486972209
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2019-10-01"
+
+  activation_id:
+    type: uuid
+    lifetime: user
+    description: >
+      An alternate identifier, not correlated with the client_id, generated once
+      and only sent with the activation ping.
+    send_in_pings:
+    - activation
+    bugs:
+    - 1538011
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/1707#issuecomment-486972209
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2019-10-01"
+
+qr_scanner:
+  opened:
+    type: event
+    description: >
+      A user opened the QR scanner
+    bugs:
+    - 1857
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2524#issuecomment-492739967
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  prompt_displayed:
+    type: event
+    description: >
+      A user scanned a QR code, causing a confirmation prompt to display asking if they want to navigate to the page
+    bugs:
+    - 1857
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2524#issuecomment-492739967
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  navigation_allowed:
+    type: event
+    description: >
+      A user tapped "allow" on the prompt, directing the user to the website scanned
+    bugs:
+    - 1857
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2524#issuecomment-492739967
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  navigation_denied:
+    type: event
+    description: >
+      A user tapped "deny" on the prompt, putting the user back to the scanning view
+    bugs:
+    - 1857
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2524#issuecomment-492739967
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+
+library:
+  opened:
+    type: event
+    description: >
+      A user opened the library
+    bugs:
+    - 976
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2538#issuecomment-492830242
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  closed:
+    type: event
+    description: >
+      A user closed the library
+    bugs:
+    - 976
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2538#issuecomment-492830242
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  selected_item:
+    type: event
+    description: >
+      A user selected a library item
+    extra_keys:
+      item:
+        description: "The library item the user selected"
+    bugs:
+    - 976
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2538#issuecomment-492830242
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+
+error_page:
+  visited_error:
+    type: event
+    description: >
+      A user encountered an error page
+    extra_keys:
+      error_type:
+        description: "The error type of the error page encountered"
+    bugs:
+    - 1242
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2491#issuecomment-492414486
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+
+sync_auth:
+  opened:
+    type: event
+    description: >
+      A user opened the sync authentication page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  closed:
+    type: event
+    description: >
+      A user closed the sync page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  sign_in:
+    type: event
+    description: >
+      A user pressed the sign in button on the sync authentication page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  scan_pairing:
+    type: event
+    description: >
+      A user pressed the scan pairing button on the sync authentication page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  create_account:
+    type: event
+    description: >
+      A user pressed the create account button on the sync authentication page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+
+sync_account:
+  opened:
+    type: event
+    description: >
+      A user opened the sync account page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  closed:
+    type: event
+    description: >
+      A user closed the sync account page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  sync_now:
+    type: event
+    description: >
+      A user pressed the sync now button on the sync account page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
+    notification_emails:
+    - fenix-core@mozilla.com
+    expires: "2020-03-01"
+  sign_out:
+    type: event
+    description: >
+      A user pressed the sign out button on the sync account page
+    bugs:
+    - 1190
+    data_reviews:
+    - https://github.com/mozilla-mobile/fenix/pull/2745#issuecomment-494918532
     notification_emails:
     - fenix-core@mozilla.com
     expires: "2020-03-01"

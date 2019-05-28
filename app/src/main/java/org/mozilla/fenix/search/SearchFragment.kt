@@ -4,22 +4,32 @@
 
 package org.mozilla.fenix.search
 
+import android.Manifest
 import android.content.Context
+import android.content.DialogInterface
+import android.graphics.Typeface.BOLD
+import android.graphics.Typeface.ITALIC
 import android.os.Bundle
+import android.text.style.StyleSpan
+import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.navigation.Navigation
 import kotlinx.android.synthetic.main.fragment_search.*
 import kotlinx.android.synthetic.main.fragment_search.view.*
 import mozilla.components.browser.search.SearchEngine
-import mozilla.components.feature.search.SearchUseCases
-import mozilla.components.feature.session.SessionUseCases
+import mozilla.components.feature.qr.QrFeature
+import mozilla.components.support.base.feature.BackHandler
+import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.kotlin.isUrl
 import org.mozilla.fenix.BrowserDirection
+import org.mozilla.fenix.FenixViewModelProvider
 import org.mozilla.fenix.HomeActivity
-import org.mozilla.fenix.utils.ItsNotBrokenSnack
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.metrics.Event
 import org.mozilla.fenix.components.toolbar.SearchAction
@@ -27,7 +37,8 @@ import org.mozilla.fenix.components.toolbar.SearchChange
 import org.mozilla.fenix.components.toolbar.SearchState
 import org.mozilla.fenix.components.toolbar.ToolbarComponent
 import org.mozilla.fenix.components.toolbar.ToolbarUIView
-import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.components.toolbar.ToolbarViewModel
+import org.mozilla.fenix.ext.getSpannable
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.mvi.ActionBusFactory
 import org.mozilla.fenix.mvi.getAutoDisposeObservable
@@ -35,13 +46,18 @@ import org.mozilla.fenix.mvi.getManagedEmitter
 import org.mozilla.fenix.search.awesomebar.AwesomeBarAction
 import org.mozilla.fenix.search.awesomebar.AwesomeBarChange
 import org.mozilla.fenix.search.awesomebar.AwesomeBarComponent
+import org.mozilla.fenix.search.awesomebar.AwesomeBarState
 import org.mozilla.fenix.search.awesomebar.AwesomeBarUIView
+import org.mozilla.fenix.search.awesomebar.AwesomeBarViewModel
 
-class SearchFragment : Fragment() {
+@Suppress("TooManyFunctions")
+class SearchFragment : Fragment(), BackHandler {
     private lateinit var toolbarComponent: ToolbarComponent
     private lateinit var awesomeBarComponent: AwesomeBarComponent
     private var sessionId: String? = null
     private var isPrivate = false
+    private val qrFeature = ViewBoundFeatureWrapper<QrFeature>()
+    private var permissionDidUpdate = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,27 +66,35 @@ class SearchFragment : Fragment() {
     ): View? {
         sessionId = SearchFragmentArgs.fromBundle(arguments!!).sessionId
         isPrivate = (activity as HomeActivity).browsingModeManager.isPrivate
-        val view = inflater.inflate(R.layout.fragment_search, container, false)
-        val url = sessionId?.let {
-            requireComponents.core.sessionManager.findSessionById(it)?.let { session ->
-                session.url
-            }
-        } ?: ""
 
-        view.search_scan_button.setOnClickListener {
-            ItsNotBrokenSnack(context!!).showSnackbar(issueNumber = "113")
-        }
+        val session = sessionId?.let { requireComponents.core.sessionManager.findSessionById(it) }
+        val view = inflater.inflate(R.layout.fragment_search, container, false)
+        val url = session?.url ?: ""
 
         toolbarComponent = ToolbarComponent(
             view.toolbar_component_wrapper,
             ActionBusFactory.get(this),
             sessionId,
             isPrivate,
-            SearchState(url, isEditing = true),
-            view.search_engine_icon
+            view.search_engine_icon,
+            FenixViewModelProvider.create(
+                this,
+                ToolbarViewModel::class.java
+            ) {
+                ToolbarViewModel(SearchState(url, session?.searchTerms ?: "", isEditing = true))
+            }
         )
 
-        awesomeBarComponent = AwesomeBarComponent(view.search_layout, ActionBusFactory.get(this))
+        awesomeBarComponent = AwesomeBarComponent(
+            view.search_layout,
+            ActionBusFactory.get(this),
+            FenixViewModelProvider.create(
+                this,
+                AwesomeBarViewModel::class.java
+            ) {
+                AwesomeBarViewModel(AwesomeBarState("", false))
+            }
+        )
         ActionBusFactory.get(this).logMergedObservables()
         return view
     }
@@ -79,6 +103,59 @@ class SearchFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         layoutComponents(view.search_layout)
+
+        qrFeature.set(
+            QrFeature(
+                requireContext(),
+                fragmentManager = requireFragmentManager(),
+                onNeedToRequestPermissions = { permissions ->
+                    requestPermissions(permissions, REQUEST_CODE_CAMERA_PERMISSIONS)
+                },
+                onScanResult = { result ->
+                    search_scan_button.isChecked = false
+                    activity?.let {
+                        AlertDialog.Builder(
+                            ContextThemeWrapper(
+                                it,
+                                R.style.DialogStyle
+                            )
+                        ).apply {
+                            val spannable = resources.getSpannable(
+                                R.string.qr_scanner_confirmation_dialog_message,
+                                listOf(
+                                    getString(R.string.app_name) to listOf(StyleSpan(BOLD)),
+                                    result to listOf(StyleSpan(ITALIC))
+                                )
+                            )
+                            setMessage(spannable)
+                            setNegativeButton(R.string.qr_scanner_dialog_negative) { dialog: DialogInterface, _ ->
+                                requireComponents.analytics.metrics.track(Event.QRScannerNavigationDenied)
+                                dialog.cancel()
+                            }
+                            setPositiveButton(R.string.qr_scanner_dialog_positive) { dialog: DialogInterface, _ ->
+                                requireComponents.analytics.metrics.track(Event.QRScannerNavigationAllowed)
+                                (activity as HomeActivity)
+                                    .openToBrowserAndLoad(
+                                        searchTermOrURL = result,
+                                        newTab = sessionId == null,
+                                        from = BrowserDirection.FromSearch
+                                    )
+                                dialog.dismiss()
+                            }
+                            create()
+                        }.show()
+                        requireComponents.analytics.metrics.track(Event.QRScannerPromptDisplayed)
+                    }
+                }),
+            owner = this,
+            view = view
+        )
+
+        view.search_scan_button.setOnClickListener {
+            getManagedEmitter<SearchChange>().onNext(SearchChange.ToolbarClearedFocus)
+            requireComponents.analytics.metrics.track(Event.QRScannerOpened)
+            qrFeature.get()?.scan(R.id.container)
+        }
 
         lifecycle.addObserver((toolbarComponent.uiView as ToolbarUIView).toolbarIntegration)
 
@@ -99,7 +176,16 @@ class SearchFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+        if (!permissionDidUpdate) {
+            getManagedEmitter<SearchChange>().onNext(SearchChange.ToolbarRequestedFocus)
+        }
+        permissionDidUpdate = false
         (activity as AppCompatActivity).supportActionBar?.hide()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        getManagedEmitter<SearchChange>().onNext(SearchChange.ToolbarClearedFocus)
     }
 
     override fun onStart() {
@@ -108,21 +194,37 @@ class SearchFragment : Fragment() {
         subscribeToAwesomeBarActions()
     }
 
+    override fun onBackPressed(): Boolean {
+        return when {
+            qrFeature.onBackPressed() -> {
+                view?.search_scan_button?.isChecked = false
+                getManagedEmitter<SearchChange>().onNext(SearchChange.ToolbarRequestedFocus)
+                true
+            }
+            else -> false
+        }
+    }
+
     private fun subscribeToSearchActions() {
         getAutoDisposeObservable<SearchAction>()
             .subscribe {
                 when (it) {
                     is SearchAction.UrlCommitted -> {
                         if (it.url.isNotBlank()) {
-                            (activity as HomeActivity).openToBrowserAndLoad(it.url, it.session, it.engine,
-                                BrowserDirection.FromSearch)
+                            (activity as HomeActivity).openToBrowserAndLoad(
+                                searchTermOrURL = it.url,
+                                newTab = sessionId == null,
+                                from = BrowserDirection.FromSearch,
+                                engine = it.engine
+                            )
 
                             val event = if (it.url.isUrl()) {
                                 Event.EnteredUrl(false)
                             } else {
-                                if (it.engine == null) { return@subscribe }
+                                val engine = it.engine ?: requireComponents
+                                    .search.searchEngineManager.getDefaultSearchEngine(requireContext())
 
-                                createSearchEvent(it.engine, false)
+                                createSearchEvent(engine, false)
                             }
 
                             requireComponents.analytics.metrics.track(event)
@@ -132,7 +234,7 @@ class SearchFragment : Fragment() {
                         getManagedEmitter<AwesomeBarChange>().onNext(AwesomeBarChange.UpdateQuery(it.query))
                     }
                     is SearchAction.EditingCanceled -> {
-                        activity?.onBackPressed()
+                        Navigation.findNavController(toolbar_wrapper).navigateUp()
                     }
                 }
             }
@@ -143,17 +245,25 @@ class SearchFragment : Fragment() {
             .subscribe {
                 when (it) {
                     is AwesomeBarAction.URLTapped -> {
-                        getSessionUseCase(requireContext(), sessionId == null).invoke(it.url)
-                        (activity as HomeActivity).openToBrowser(sessionId, BrowserDirection.FromSearch)
+                        (activity as HomeActivity).openToBrowserAndLoad(
+                            searchTermOrURL = it.url,
+                            newTab = sessionId == null,
+                            from = BrowserDirection.FromSearch
+                        )
                         requireComponents.analytics.metrics.track(Event.EnteredUrl(false))
                     }
                     is AwesomeBarAction.SearchTermsTapped -> {
-                        getSearchUseCase(requireContext(), sessionId == null)
-                            .invoke(it.searchTerms, it.engine)
-                        (activity as HomeActivity).openToBrowser(sessionId, BrowserDirection.FromSearch)
+                        (activity as HomeActivity).openToBrowserAndLoad(
+                            searchTermOrURL = it.searchTerms,
+                            newTab = sessionId == null,
+                            from = BrowserDirection.FromSearch,
+                            engine = it.engine,
+                            forceSearch = true
+                        )
 
-                        if (it.engine == null) { return@subscribe }
-                        val event = createSearchEvent(it.engine, true)
+                        val engine = it.engine ?: requireComponents
+                            .search.searchEngineManager.getDefaultSearchEngine(requireContext())
+                        val event = createSearchEvent(engine, true)
 
                         requireComponents.analytics.metrics.track(event)
                     }
@@ -183,25 +293,22 @@ class SearchFragment : Fragment() {
         return Event.PerformedSearch(source)
     }
 
-    private fun getSearchUseCase(context: Context, useNewTab: Boolean): SearchUseCases.SearchUseCase {
-        if (!useNewTab) {
-            return context.components.useCases.searchUseCases.defaultSearch
-        }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        when (requestCode) {
+            REQUEST_CODE_CAMERA_PERMISSIONS -> qrFeature.withFeature {
+                it.onPermissionsResult(permissions, grantResults)
 
-        return when (isPrivate) {
-            true -> context.components.useCases.searchUseCases.newPrivateTabSearch
-            false -> context.components.useCases.searchUseCases.newTabSearch
+                context?.let { context: Context ->
+                    if (context.isPermissionGranted(Manifest.permission.CAMERA)) {
+                        permissionDidUpdate = true
+                    }
+                }
+            }
+            else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
     }
 
-    private fun getSessionUseCase(context: Context, useNewTab: Boolean): SessionUseCases.LoadUrlUseCase {
-        if (!useNewTab) {
-            return context.components.useCases.sessionUseCases.loadUrl
-        }
-
-        return when (isPrivate) {
-            true -> context.components.useCases.tabsUseCases.addPrivateTab
-            false -> context.components.useCases.tabsUseCases.addTab
-        }
+    companion object {
+        private const val REQUEST_CODE_CAMERA_PERMISSIONS = 1
     }
 }

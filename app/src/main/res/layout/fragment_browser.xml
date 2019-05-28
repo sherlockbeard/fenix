@@ -14,18 +14,17 @@
     <mozilla.components.concept.engine.EngineView
         android:id="@+id/engineView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
-
+        android:layout_height="match_parent" />
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/nestedScrollQuickAction"
         android:layout_width="match_parent"
-        android:layout_height="80dp"
+        android:layout_height="wrap_content"
         android:background="?foundation"
         android:clipToPadding="true"
         app:behavior_hideable="true"
-        app:behavior_peekHeight="15dp"
-        app:layout_behavior="org.mozilla.fenix.quickactionsheet.QuickActionSheetBehavior"/>
+        app:behavior_peekHeight="12dp"
+        app:layout_behavior="org.mozilla.fenix.quickactionsheet.QuickActionSheetBehavior" />
 
     <mozilla.components.feature.findinpage.view.FindInPageBar
         android:id="@+id/findInPageView"
@@ -33,9 +32,20 @@
         android:layout_height="56dp"
         android:layout_gravity="bottom"
         android:background="?foundation"
-        mozac:findInPageResultCountTextColor="?primaryText"
-        mozac:findInPageButtonsTint="?primaryText"
+        android:clickable="true"
         android:visibility="gone"
-        app:layout_behavior="org.mozilla.fenix.components.FindInPageBarBehavior" />
+        app:findInPageNoMatchesTextColor="?attr/destructive"
+        app:layout_behavior="org.mozilla.fenix.components.FindInPageBarBehavior"
+        mozac:findInPageButtonsTint="?primaryText"
+        mozac:findInPageResultCountTextColor="?primaryText" />
+
+    <mozilla.components.feature.readerview.view.ReaderViewControlsBar
+        android:id="@+id/readerViewControlsBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="?foundation"
+        android:elevation="24dp"
+        android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

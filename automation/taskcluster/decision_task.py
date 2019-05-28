@@ -9,19 +9,28 @@ Decision task for nightly releases.
 from __future__ import print_function
 
 import argparse
+import datetime
 import os
+import re
+
 import taskcluster
 
-from lib import build_variants
-from lib.tasks import TaskBuilder, schedule_task_graph, _get_architecture_and_build_type_and_product_from_variant
+from lib.gradle import get_debug_variants, get_geckoview_versions
+from lib.tasks import (
+    fetch_mozharness_task_id,
+    schedule_task_graph,
+    TaskBuilder,
+)
 from lib.chain_of_trust import (
     populate_chain_of_trust_task_graph,
     populate_chain_of_trust_required_but_unused_files
 )
+from lib.variant import Variant
 
 REPO_URL = os.environ.get('MOBILE_HEAD_REPOSITORY')
 COMMIT = os.environ.get('MOBILE_HEAD_REV')
 PR_TITLE = os.environ.get('GITHUB_PULL_TITLE', '')
+SHORT_HEAD_BRANCH = os.environ.get('SHORT_HEAD_BRANCH')
 
 # If we see this text inside a pull request title then we will not execute any tasks for this PR.
 SKIP_TASKS_TRIGGER = '[ci skip]'
@@ -31,7 +40,7 @@ BUILDER = TaskBuilder(
     task_id=os.environ.get('TASK_ID'),
     repo_url=REPO_URL,
     git_ref=os.environ.get('MOBILE_HEAD_BRANCH'),
-    short_head_branch=os.environ.get('SHORT_HEAD_BRANCH'),
+    short_head_branch=SHORT_HEAD_BRANCH,
     commit=COMMIT,
     owner="fenix-eng-notifications@mozilla.com",
     source='{}/raw/{}/.taskcluster.yml'.format(REPO_URL, COMMIT),
@@ -42,8 +51,8 @@ BUILDER = TaskBuilder(
 )
 
 
-def pr_or_push(is_master_push):
-    if not is_master_push and SKIP_TASKS_TRIGGER in PR_TITLE:
+def pr_or_push(is_push):
+    if not is_push and SKIP_TASKS_TRIGGER in PR_TITLE:
         print("Pull request title contains", SKIP_TASKS_TRIGGER)
         print("Exit")
         return {}
@@ -52,20 +61,10 @@ def pr_or_push(is_master_push):
     signing_tasks = {}
     other_tasks = {}
 
-    for variant in build_variants.from_gradle():
+    for variant in get_debug_variants():
         assemble_task_id = taskcluster.slugId()
         build_tasks[assemble_task_id] = BUILDER.craft_assemble_task(variant)
         build_tasks[taskcluster.slugId()] = BUILDER.craft_test_task(variant)
-
-        arch, build_type, _ = _get_architecture_and_build_type_and_product_from_variant(variant)
-        # autophone only supports arm and aarch64, so only sign/perftest those builds
-        if (
-            build_type == 'releaseRaptor' and
-            arch in ('arm', 'aarch64') and
-            is_master_push
-        ):
-            signing_tasks[taskcluster.slugId()] = BUILDER.craft_master_commit_signing_task(assemble_task_id, variant)
-            # raptor task will be added in follow-up
 
     for craft_function in (
         BUILDER.craft_detekt_task,
@@ -75,11 +74,39 @@ def pr_or_push(is_master_push):
     ):
         other_tasks[taskcluster.slugId()] = craft_function()
 
+    if is_push and SHORT_HEAD_BRANCH == 'master':
+        other_tasks[taskcluster.slugId()] = BUILDER.craft_dependencies_task()
+
     return (build_tasks, signing_tasks, other_tasks)
 
 
-def nightly(track):
-    is_staging = track == 'staging-nightly'
+def raptor(is_staging):
+    build_tasks = {}
+    signing_tasks = {}
+    other_tasks = {}
+
+    geckoview_nightly_version = get_geckoview_versions()['nightly']
+    mozharness_task_id = fetch_mozharness_task_id(geckoview_nightly_version)
+    gecko_revision = taskcluster.Queue().task(mozharness_task_id)['payload']['env']['GECKO_HEAD_REV']
+
+    for variant in [Variant.from_values(abi, False, 'raptor') for abi in ('aarch64', 'arm')]:
+        assemble_task_id = taskcluster.slugId()
+        build_tasks[assemble_task_id] = BUILDER.craft_assemble_task(variant)
+        signing_task_id = taskcluster.slugId()
+        signing_tasks[signing_task_id] = BUILDER.craft_raptor_signing_task(assemble_task_id, variant, is_staging)
+
+        all_raptor_craft_functions = [
+            BUILDER.craft_raptor_tp6m_cold_task(for_suite=i)
+            for i in range(1, 15)
+        ]
+        for craft_function in all_raptor_craft_functions:
+            args = (signing_task_id, mozharness_task_id, variant, gecko_revision)
+            other_tasks[taskcluster.slugId()] = craft_function(*args)
+
+    return (build_tasks, signing_tasks, other_tasks)
+
+
+def release(track, is_staging, version_name):
     architectures = ['x86', 'arm', 'aarch64']
     apk_paths = ["public/target.{}.apk".format(arch) for arch in architectures]
 
@@ -88,12 +115,13 @@ def nightly(track):
     push_tasks = {}
 
     build_task_id = taskcluster.slugId()
-    build_tasks[build_task_id] = BUILDER.craft_assemble_release_task(architectures, is_staging)
+    build_tasks[build_task_id] = BUILDER.craft_assemble_release_task(architectures, track, is_staging, version_name)
 
     signing_task_id = taskcluster.slugId()
-    signing_tasks[signing_task_id] = BUILDER.craft_nightly_signing_task(
+    signing_tasks[signing_task_id] = BUILDER.craft_release_signing_task(
         build_task_id,
         apk_paths=apk_paths,
+        track=track,
         is_staging=is_staging,
     )
 
@@ -101,6 +129,7 @@ def nightly(track):
     push_tasks[push_task_id] = BUILDER.craft_push_task(
         signing_task_id,
         apks=apk_paths,
+        track=track,
         is_staging=is_staging,
     )
 
@@ -116,15 +145,17 @@ if __name__ == "__main__":
 
     subparsers.add_parser('pull-request')
     subparsers.add_parser('push')
-    release_parser = subparsers.add_parser('release')
 
-    release_parser.add_argument('--nightly', action="store_true", default=False)
-    release_parser.add_argument(
-        '--track', action="store", choices=['nightly', 'staging-nightly'], required=True
-    )
+    raptor_parser = subparsers.add_parser('raptor')
+    raptor_parser.add_argument('--staging', action='store_true')
+
+    nightly_parser = subparsers.add_parser('nightly')
+    nightly_parser.add_argument('--staging', action='store_true')
+
+    release_parser = subparsers.add_parser('beta')
+    release_parser.add_argument('tag')
 
     result = parser.parse_args()
-
     command = result.command
     taskcluster_queue = taskcluster.Queue({'baseUrl': 'http://taskcluster/queue/v1'})
 
@@ -132,8 +163,16 @@ if __name__ == "__main__":
         ordered_groups_of_tasks = pr_or_push(False)
     elif command == 'push':
         ordered_groups_of_tasks = pr_or_push(True)
-    elif command == 'release':
-        ordered_groups_of_tasks = nightly(result.track)
+    elif command == 'raptor':
+        ordered_groups_of_tasks = raptor(result.staging)
+    elif command == 'nightly':
+        formatted_date = datetime.datetime.now().strftime('%y%V')
+        ordered_groups_of_tasks = release('nightly', result.staging, '1.0.{}'.format(formatted_date))
+    elif command == 'beta':
+        semver = re.compile(r'^\d+\.\d+\.\d+-beta\.\d+$')
+        if not semver.match(result.tag):
+            raise ValueError('Github tag must be in beta semver format, e.g.: "1.0.0-beta.0')
+        ordered_groups_of_tasks = release('beta', False, result.tag)
     else:
         raise Exception('Unsupported command "{}"'.format(command))
 

@@ -5,10 +5,11 @@ package org.mozilla.fenix.utils
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import android.content.Context
+import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
-import android.preference.PreferenceManager
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import org.mozilla.fenix.BuildConfig
+import org.mozilla.fenix.Config
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.getPreferenceKey
 import java.security.InvalidParameterException
@@ -21,6 +22,7 @@ class Settings private constructor(context: Context) {
 
     companion object {
         const val autoBounceMaximumCount = 2
+        const val FENIX_PREFERENCES = "fenix_preferences"
 
         var instance: Settings? = null
 
@@ -36,15 +38,22 @@ class Settings private constructor(context: Context) {
 
     private val appContext = context.applicationContext
 
-    private val preferences: SharedPreferences =
-        PreferenceManager.getDefaultSharedPreferences(context)
+    val preferences: SharedPreferences =
+        appContext.getSharedPreferences(FENIX_PREFERENCES, MODE_PRIVATE)
+
+    val usePrivateMode: Boolean
+        get() = preferences.getBoolean(appContext.getPreferenceKey(R.string.pref_key_private_mode), false)
+
+    fun setPrivateMode(newValue: Boolean) {
+        preferences.edit().putBoolean(appContext.getPreferenceKey(R.string.pref_key_private_mode), newValue).apply()
+    }
 
     val defaultSearchEngineName: String
         get() = preferences.getString(appContext.getPreferenceKey(R.string.pref_key_search_engine), "") ?: ""
 
     val isCrashReportingEnabled: Boolean
         get() = preferences.getBoolean(appContext.getPreferenceKey(R.string.pref_key_crash_reporter), true) &&
-                BuildConfig.CRASH_REPORTING && BuildConfig.BUILD_TYPE == "release"
+                BuildConfig.CRASH_REPORTING && Config.channel.isReleased
 
     val isRemoteDebuggingEnabled: Boolean
         get() = preferences.getBoolean(appContext.getPreferenceKey(R.string.pref_key_remote_debugging), false)
@@ -59,6 +68,35 @@ class Settings private constructor(context: Context) {
         get() = preferences.getBoolean(
             appContext.getPreferenceKey(R.string.pref_key_light_theme),
             false
+        )
+
+    fun setLightTheme(newValue: Boolean) {
+        preferences.edit().putBoolean(
+            appContext.getPreferenceKey(R.string.pref_key_light_theme),
+            newValue
+        ).apply()
+    }
+
+    fun setAutoSize(newValue: Boolean) {
+        preferences.edit().putBoolean(appContext.getPreferenceKey(R.string.pref_key_accessibility_auto_size), newValue)
+            .apply()
+    }
+
+    val shouldUseAutoSize: Boolean
+        get() = preferences.getBoolean(
+            appContext.getPreferenceKey(R.string.pref_key_accessibility_auto_size),
+            true
+        )
+
+    fun setFontSizeFactor(newValue: Float) {
+        preferences.edit().putFloat(appContext.getPreferenceKey(R.string.pref_key_accessibility_font_scale), newValue)
+            .apply()
+    }
+
+    val fontSizeFactor: Float
+        get() = preferences.getFloat(
+            appContext.getPreferenceKey(R.string.pref_key_accessibility_font_scale),
+            1f
         )
 
     val shouldShowVisitedSitesBookmarks: Boolean
@@ -79,11 +117,25 @@ class Settings private constructor(context: Context) {
             false
         )
 
+    fun setFollowDeviceTheme(newValue: Boolean) {
+        preferences.edit().putBoolean(
+            appContext.getPreferenceKey(R.string.pref_key_follow_device_theme),
+            newValue
+        ).apply()
+    }
+
     val shouldUseTrackingProtection: Boolean
         get() = preferences.getBoolean(
             appContext.getPreferenceKey(R.string.pref_key_tracking_protection),
             true
         )
+
+    fun setTrackingProtection(newValue: Boolean) {
+        preferences.edit().putBoolean(
+            appContext.getPreferenceKey(R.string.pref_key_tracking_protection),
+            newValue
+        ).apply()
+    }
 
     val shouldUseAutoBatteryTheme: Boolean
         get() = preferences.getBoolean(
@@ -107,8 +159,10 @@ class Settings private constructor(context: Context) {
         get() = (preferences.getInt(appContext.getPreferenceKey(R.string.pref_key_bounce_quick_action), 0))
 
     fun incrementAutomaticBounceQuickActionSheetCount() {
-        preferences.edit().putInt(appContext.getPreferenceKey(R.string.pref_key_bounce_quick_action),
-            autoBounceQuickActionSheetCount + 1).apply()
+        preferences.edit().putInt(
+            appContext.getPreferenceKey(R.string.pref_key_bounce_quick_action),
+            autoBounceQuickActionSheetCount + 1
+        ).apply()
     }
 
     fun setDefaultSearchEngineByName(name: String) {
@@ -141,7 +195,7 @@ class Settings private constructor(context: Context) {
 
     fun getSitePermissionsPhoneFeatureMicrophoneAction(): SitePermissionsRules.Action {
         return preferences.getInt(appContext.getPreferenceKey(R.string.pref_key_phone_feature_microphone), 1)
-                .toSitePermissionsRulesAction()
+            .toSitePermissionsRulesAction()
     }
 
     fun setSitePermissionsPhoneFeatureNotificationAction(action: SitePermissionsRules.Action) {
@@ -152,7 +206,7 @@ class Settings private constructor(context: Context) {
 
     fun getSitePermissionsPhoneFeatureNotificationAction(): SitePermissionsRules.Action {
         return preferences.getInt(appContext.getPreferenceKey(R.string.pref_key_phone_feature_notification), 1)
-                .toSitePermissionsRulesAction()
+            .toSitePermissionsRulesAction()
     }
 
     fun setSitePermissionsPhoneFeatureLocation(action: SitePermissionsRules.Action) {
@@ -163,7 +217,7 @@ class Settings private constructor(context: Context) {
 
     fun getSitePermissionsPhoneFeatureLocation(): SitePermissionsRules.Action {
         return preferences.getInt(appContext.getPreferenceKey(R.string.pref_key_phone_feature_location), 1)
-                .toSitePermissionsRulesAction()
+            .toSitePermissionsRulesAction()
     }
 
     fun getSitePermissionsCustomSettingsRules(): SitePermissionsRules {

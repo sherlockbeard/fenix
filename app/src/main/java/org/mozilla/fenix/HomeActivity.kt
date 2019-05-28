@@ -4,14 +4,11 @@
 
 package org.mozilla.fenix
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.util.AttributeSet
 import android.view.View
-import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.navigation.fragment.NavHostFragment
@@ -34,13 +31,15 @@ import org.mozilla.fenix.library.bookmarks.BookmarkFragmentDirections
 import org.mozilla.fenix.library.bookmarks.selectfolder.SelectBookmarkFolderFragmentDirections
 import org.mozilla.fenix.library.history.HistoryFragmentDirections
 import org.mozilla.fenix.search.SearchFragmentDirections
+import org.mozilla.fenix.settings.PairFragmentDirections
 import org.mozilla.fenix.settings.SettingsFragmentDirections
+import org.mozilla.fenix.settings.TurnOnSyncFragmentDirections
+import org.mozilla.fenix.utils.Settings
 
 @SuppressWarnings("TooManyFunctions")
 open class HomeActivity : AppCompatActivity() {
     open val isCustomTab = false
     private var sessionObserver: SessionManager.Observer? = null
-    var allSessionsRemoved = false
 
     val themeManager = DefaultThemeManager().also {
         it.onThemeChange = { theme ->
@@ -57,11 +56,9 @@ open class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        sessionObserver = subscribeToSessions()
 
         themeManager.temporaryThemeManagerStorage =
-            when (PreferenceManager.getDefaultSharedPreferences(this)
-                .getBoolean(this.getString(R.string.pref_key_private_mode), false)) {
+            when (Settings.getInstance(this).usePrivateMode) {
                 true -> ThemeManager.Theme.Private
                 false -> ThemeManager.Theme.Normal
             }
@@ -69,13 +66,14 @@ open class HomeActivity : AppCompatActivity() {
         DefaultThemeManager.applyStatusBarTheme(window, themeManager, this)
         browsingModeManager = DefaultBrowsingModeManager(this)
 
-        components.core.setEnginePreferredColorScheme()
         setContentView(R.layout.activity_home)
 
-        val appBarConfiguration = AppBarConfiguration.Builder(setOf(R.id.libraryFragment)).build()
+        // Add ids to this that we don't want to have a toolbar back button
+        val appBarConfiguration = AppBarConfiguration.Builder().build()
         val navigationToolbar = findViewById<Toolbar>(R.id.navigationToolbar)
         setSupportActionBar(navigationToolbar)
         NavigationUI.setupWithNavController(navigationToolbar, navHost.navController, appBarConfiguration)
+        supportActionBar?.hide()
 
         intent
             ?.let { SafeIntent(it) }
@@ -92,22 +90,10 @@ open class HomeActivity : AppCompatActivity() {
         handleOpenedFromExternalSourceIfNecessary(intent)
     }
 
-    override fun onResume() {
-        super.onResume()
-        // All sessions have been removed; we should try to pop inclusive to browser if not in private mode
-        if (allSessionsRemoved && !browsingModeManager.isPrivate) {
-            navHost.navController.popBackStack(R.id.browserFragment, true)
-            allSessionsRemoved = false
-        }
-
-        showSoftwareKeyboardIfNecessary()
-    }
-
     override fun onDestroy() {
+        themeManager.onThemeChange = null
+        sessionObserver?.let { components.core.sessionManager.unregister(it) }
         super.onDestroy()
-        sessionObserver?.let {
-            components.core.sessionManager.unregister(it)
-        }
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -136,30 +122,13 @@ open class HomeActivity : AppCompatActivity() {
         super.onBackPressed()
     }
 
-    override fun onPause() {
-        super.onPause()
-        hideSoftwareKeyboardIfNecessary()
-    }
-
-    private fun showSoftwareKeyboardIfNecessary() {
-        (getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager).apply {
-            currentFocus?.also {
-                this.showSoftInput(it, 0)
-            }
-        }
-    }
-
-    private fun hideSoftwareKeyboardIfNecessary() {
-        (getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager).apply {
-            currentFocus?.also {
-                this.hideSoftInputFromWindow(it.windowToken, 0)
-            }
-        }
-    }
-
     private fun handleCrashIfNecessary(intent: Intent?) {
-        if (intent == null) { return }
-        if (!Crash.isCrashIntent(intent)) { return }
+        if (intent == null) {
+            return
+        }
+        if (!Crash.isCrashIntent(intent)) {
+            return
+        }
 
         openToCrashReporter(intent)
     }
@@ -170,48 +139,62 @@ open class HomeActivity : AppCompatActivity() {
     }
 
     private fun handleOpenedFromExternalSourceIfNecessary(intent: Intent?) {
-        if (intent?.extras?.getBoolean(OPEN_TO_BROWSER) == true) {
-            handleOpenedFromExternalSource()
+        if (intent?.extras?.getBoolean(OPEN_TO_BROWSER) != true) { return }
+
+        this.intent.putExtra(OPEN_TO_BROWSER, false)
+        var customTabSessionId: String? = null
+
+        if (isCustomTab) {
+            customTabSessionId = SafeIntent(intent).getStringExtra(IntentProcessor.ACTIVE_SESSION_ID)
         }
+
+        openToBrowser(BrowserDirection.FromGlobal, customTabSessionId)
     }
 
-    private fun handleOpenedFromExternalSource() {
-        intent?.putExtra(OPEN_TO_BROWSER, false)
-        openToBrowser(SafeIntent(intent).getStringExtra(IntentProcessor.ACTIVE_SESSION_ID), BrowserDirection.FromGlobal)
-    }
-
+    @Suppress("LongParameterList")
     fun openToBrowserAndLoad(
-        text: String,
-        sessionId: String? = null,
+        searchTermOrURL: String,
+        newTab: Boolean,
+        from: BrowserDirection,
+        customTabSessionId: String? = null,
         engine: SearchEngine? = null,
-        from: BrowserDirection
+        forceSearch: Boolean = false
     ) {
-        openToBrowser(sessionId, from)
-        load(text, sessionId, engine)
+        openToBrowser(from, customTabSessionId)
+        load(searchTermOrURL, newTab, engine, forceSearch)
     }
 
-    fun openToBrowser(sessionId: String?, from: BrowserDirection) {
+    @Suppress("ComplexMethod")
+    fun openToBrowser(from: BrowserDirection, customTabSessionId: String? = null) {
         val directions = when (from) {
-            BrowserDirection.FromGlobal -> NavGraphDirections.actionGlobalBrowser(sessionId)
-            BrowserDirection.FromHome -> HomeFragmentDirections.actionHomeFragmentToBrowserFragment(sessionId)
-            BrowserDirection.FromSearch -> SearchFragmentDirections.actionSearchFragmentToBrowserFragment(sessionId)
+            BrowserDirection.FromGlobal -> NavGraphDirections.actionGlobalBrowser(customTabSessionId)
+            BrowserDirection.FromHome -> HomeFragmentDirections.actionHomeFragmentToBrowserFragment(customTabSessionId)
+            BrowserDirection.FromSearch ->
+                SearchFragmentDirections.actionSearchFragmentToBrowserFragment(customTabSessionId)
             BrowserDirection.FromSettings ->
-                SettingsFragmentDirections.actionSettingsFragmentToBrowserFragment(sessionId)
+                SettingsFragmentDirections.actionSettingsFragmentToBrowserFragment(customTabSessionId)
             BrowserDirection.FromBookmarks ->
-                BookmarkFragmentDirections.actionBookmarkFragmentToBrowserFragment(sessionId)
+                BookmarkFragmentDirections.actionBookmarkFragmentToBrowserFragment(customTabSessionId)
             BrowserDirection.FromBookmarksFolderSelect ->
-                SelectBookmarkFolderFragmentDirections.actionBookmarkSelectFolderFragmentToBrowserFragment(sessionId)
+                SelectBookmarkFolderFragmentDirections
+                    .actionBookmarkSelectFolderFragmentToBrowserFragment(customTabSessionId)
             BrowserDirection.FromHistory ->
-                HistoryFragmentDirections.actionHistoryFragmentToBrowserFragment(sessionId)
+                HistoryFragmentDirections.actionHistoryFragmentToBrowserFragment(customTabSessionId)
+            BrowserDirection.FromPair -> PairFragmentDirections.actionPairFragmentToBrowserFragment(customTabSessionId)
+            BrowserDirection.FromTurnOnSync -> TurnOnSyncFragmentDirections.actionTurnOnSyncFragmentToBrowserFragment(
+                customTabSessionId
+            )
         }
+        if (sessionObserver == null)
+            sessionObserver = subscribeToSessions()
 
         navHost.navController.navigate(directions)
     }
 
-    private fun load(text: String, sessionId: String?, engine: SearchEngine?) {
+    private fun load(searchTermOrURL: String, newTab: Boolean, engine: SearchEngine?, forceSearch: Boolean) {
         val isPrivate = this.browsingModeManager.isPrivate
 
-        val loadUrlUseCase = if (sessionId == null) {
+        val loadUrlUseCase = if (newTab) {
             if (isPrivate) {
                 components.useCases.tabsUseCases.addPrivateTab
             } else {
@@ -220,28 +203,66 @@ open class HomeActivity : AppCompatActivity() {
         } else components.useCases.sessionUseCases.loadUrl
 
         val searchUseCase: (String) -> Unit = { searchTerms ->
-            if (sessionId == null) {
+            if (newTab) {
                 components.useCases.searchUseCases.newTabSearch
                     .invoke(searchTerms, Session.Source.USER_ENTERED, true, isPrivate, searchEngine = engine)
             } else components.useCases.searchUseCases.defaultSearch.invoke(searchTerms, engine)
         }
 
-        if (text.isUrl()) {
-            loadUrlUseCase.invoke(text.toNormalizedUrl())
+        if (!forceSearch && searchTermOrURL.isUrl()) {
+            loadUrlUseCase.invoke(searchTermOrURL.toNormalizedUrl())
         } else {
-            searchUseCase.invoke(text)
+            searchUseCase.invoke(searchTermOrURL)
+        }
+    }
+
+    private val singleSessionObserver = object : Session.Observer {
+        var urlLoading: String? = null
+
+        override fun onLoadingStateChanged(session: Session, loading: Boolean) {
+            super.onLoadingStateChanged(session, loading)
+
+            if (loading) urlLoading = session.url
+            else if (urlLoading != null && !session.private)
+                components.analytics.metrics.track(Event.UriOpened)
+        }
+    }
+
+    fun updateThemeForSession(session: Session) {
+        if (session.private && !themeManager.currentTheme.isPrivate()) {
+            browsingModeManager.mode = BrowsingModeManager.Mode.Private
+        } else if (!session.private && themeManager.currentTheme.isPrivate()) {
+            browsingModeManager.mode = BrowsingModeManager.Mode.Normal
         }
     }
 
     private fun subscribeToSessions(): SessionManager.Observer {
-        val observer = object : SessionManager.Observer {
+
+        return object : SessionManager.Observer {
             override fun onAllSessionsRemoved() {
                 super.onAllSessionsRemoved()
-                allSessionsRemoved = true
+                components.core.sessionManager.sessions.forEach {
+                    it.unregister(singleSessionObserver)
+                }
             }
-        }
-        components.core.sessionManager.register(observer)
-        return observer
+
+            override fun onSessionAdded(session: Session) {
+                super.onSessionAdded(session)
+                session.register(singleSessionObserver, this@HomeActivity)
+            }
+
+            override fun onSessionRemoved(session: Session) {
+                super.onSessionRemoved(session)
+                session.unregister(singleSessionObserver)
+            }
+
+            override fun onSessionsRestored() {
+                super.onSessionsRestored()
+                components.core.sessionManager.sessions.forEach {
+                    it.register(singleSessionObserver, this@HomeActivity)
+                }
+            }
+        }.also { components.core.sessionManager.register(it, this) }
     }
 
     companion object {
@@ -250,5 +271,6 @@ open class HomeActivity : AppCompatActivity() {
 }
 
 enum class BrowserDirection {
-    FromGlobal, FromHome, FromSearch, FromSettings, FromBookmarks, FromBookmarksFolderSelect, FromHistory
+    FromGlobal, FromHome, FromSearch, FromSettings, FromBookmarks,
+    FromBookmarksFolderSelect, FromHistory, FromPair, FromTurnOnSync
 }

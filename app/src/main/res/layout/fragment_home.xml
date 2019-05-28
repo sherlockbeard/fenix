@@ -12,7 +12,7 @@
         android:id="@+id/homeLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/home_background_gradient"
+        android:background="?homeBackground"
         app:layoutDescription="@xml/home_scene"
         tools:context=".home.HomeFragment">
         <ImageButton
@@ -31,7 +31,7 @@
             android:layout_width="@dimen/glyph_button_height"
             android:layout_height="@dimen/glyph_button_height"
             android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_private_browsing"
+            android:src="@drawable/private_browsing_button"
             android:contentDescription="@string/content_description_private_browsing_button"
             app:layout_constraintEnd_toStartOf="@id/menuButton"
             app:layout_constraintTop_toTopOf="@id/menuButton" />
@@ -39,10 +39,12 @@
         <ImageView
             android:id="@+id/wordmark"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
+            android:layout_height="80dp"
             android:layout_marginTop="42dp"
+            android:layout_marginStart="16dp"
             android:src="?fenixLogo"
+            android:contentDescription="@string/app_name"
+            android:adjustViewBounds="true"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/menuButton" />
 
@@ -80,7 +82,7 @@
             android:id="@+id/homeDivider"
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="?neutral"
+            android:background="?neutralFaded"
             app:layout_constraintTop_toBottomOf="@id/toolbar_wrapper"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

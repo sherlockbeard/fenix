@@ -9,6 +9,7 @@ import mozilla.components.browser.menu.BrowserMenuBuilder
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
+import org.mozilla.fenix.DefaultThemeManager
 import org.mozilla.fenix.R
 
 class BookmarkItemMenu(
@@ -36,12 +37,7 @@ class BookmarkItemMenu(
                     onItemTapped.invoke(BookmarkItemMenu.Item.Edit)
                 }
             } else null,
-            if (item.type in listOf(BookmarkNodeType.ITEM, BookmarkNodeType.FOLDER)) {
-                SimpleBrowserMenuItem(context.getString(R.string.bookmark_menu_select_button)) {
-                    onItemTapped.invoke(BookmarkItemMenu.Item.Select)
-                }
-            } else null,
-            if (item.type in listOf(BookmarkNodeType.ITEM, BookmarkNodeType.FOLDER)) {
+            if (item.type == BookmarkNodeType.ITEM) {
                 SimpleBrowserMenuItem(context.getString(R.string.bookmark_menu_copy_button)) {
                     onItemTapped.invoke(BookmarkItemMenu.Item.Copy)
                 }
@@ -63,7 +59,7 @@ class BookmarkItemMenu(
             } else null,
             SimpleBrowserMenuItem(
                 context.getString(R.string.bookmark_menu_delete_button),
-                textColorResource = R.color.delete_color
+                textColorResource = DefaultThemeManager.resolveAttribute(R.attr.destructive, context)
             ) {
                 onItemTapped.invoke(BookmarkItemMenu.Item.Delete)
             }

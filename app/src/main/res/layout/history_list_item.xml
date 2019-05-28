@@ -4,22 +4,15 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/history_layout"
     android:layout_width="match_parent"
     android:layout_height="56dp"
     android:background="?android:attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
     android:padding="4dp"
-    android:paddingStart="20dp">
-
-    <CheckBox
-        android:id="@+id/should_remove_checkbox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    android:paddingStart="20dp"
+    android:paddingEnd="0dp">
 
     <ImageButton
         android:id="@+id/history_item_overflow"
@@ -36,7 +29,8 @@
         android:id="@+id/history_favicon"
         android:layout_width="@dimen/history_favicon_width_height"
         android:layout_height="@dimen/history_favicon_width_height"
-        android:background="@drawable/history_favicon_background"
+        android:background="@drawable/favicon_background"
+        android:padding="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -51,7 +45,6 @@
         android:textAlignment="viewStart"
         android:textColor="?secondaryText"
         android:textSize="12sp"
-        android:layout_marginTop="4dp"
         app:layout_constraintEnd_toStartOf="@id/history_item_overflow"
         app:layout_constraintStart_toEndOf="@id/history_favicon"
         app:layout_constraintTop_toBottomOf="@id/history_title" />
@@ -67,6 +60,7 @@
         android:textAlignment="viewStart"
         android:textColor="?primaryText"
         android:textSize="18sp"
+        android:layout_marginTop="2dp"
         app:layout_constraintEnd_toStartOf="@id/history_item_overflow"
         app:layout_constraintStart_toEndOf="@id/history_favicon"
         app:layout_constraintTop_toTopOf="parent" />

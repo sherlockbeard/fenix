@@ -6,62 +6,112 @@
 
     <style name="NormalThemeBase" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Android system styling -->
+        <item name="android:windowContentTransitions">true</item>
         <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
         <item name="android:progressBarStyleHorizontal">@style/progressBarStyleHorizontal</item>
         <item name="android:statusBarColor">@color/foundation_normal_theme</item>
         <item name="android:windowBackground">@color/foundation_normal_theme</item>
         <item name="android:colorEdgeEffect">@color/accent_normal_theme</item>
         <item name="android:colorAccent">@color/primary_text_normal_theme</item>
-        <item name="android:colorControlActivated">@color/accent_bright_normal_theme</item>
+        <item name="android:textColorPrimary">@color/primary_text_normal_theme</item>
+        <item name="android:textColorSecondary">@color/secondary_text_normal_theme</item>
+        <item name="alertDialogStyle">@style/DialogStyle</item>
+        <item name="alertDialogTheme">@style/DialogStyle</item>
+
+        <!-- Active thumb color & Active track color (30% transparency) -->
+        <item name="android:colorControlActivated">@color/accent_high_contrast_normal_theme</item>
+        <!-- Inactive thumb color -->
+        <item name="colorSwitchThumbNormal">@color/toggle_off_knob_normal_theme</item>
+        <!-- Inactive track color(30% transparency) -->
+        <item name="android:colorForeground">@color/toggle_off_track_normal_theme</item>
 
         <!-- Updated color attributes -->
         <item name="primaryText">@color/primary_text_normal_theme</item>
         <item name="secondaryText">@color/secondary_text_normal_theme</item>
+        <item name="contrastText">@color/contrast_text_normal_theme</item>
         <item name="accent">@color/accent_normal_theme</item>
         <item name="accentBright">@color/accent_bright_normal_theme</item>
+        <item name="accentHighContrast">@color/accent_high_contrast_normal_theme</item>
         <item name="foundation">@color/foundation_normal_theme</item>
         <item name="above">@color/above_normal_theme</item>
-        <item name="aboveDarkened">@color/above_darkened_normal_theme</item>
+        <item name="inset">@color/inset_normal_theme</item>
         <item name="neutral">@color/neutral_normal_theme</item>
+        <item name="neutralFaded">@color/neutral_faded_normal_theme</item>
+        <item name="shadow">@color/shadow_normal_theme</item>
+        <item name="destructive">@color/destructive_normal_theme</item>
+        <item name="scrimStart">@color/scrimStart_normal_theme</item>
+        <item name="scrimEnd">@color/scrimEnd_normal_theme</item>
 
         <!-- Drawables -->
-        <item name="fenixLogo">@drawable/ic_logo_wordmark</item>
+        <item name="fenixLogo">@drawable/ic_logo_wordmark_normal</item>
+        <item name="homeBackground">@color/foundation_normal_theme</item>
         <item name="privateBrowsingButtonBackground">@android:color/transparent</item>
+        <item name="privateBrowsingButtonAccent">@color/primary_text_normal_theme</item>
     </style>
 
-    <style name="NormalTheme" parent="NormalThemeBase"/>
+    <style name="NormalTheme" parent="NormalThemeBase" />
+
+    <style name="DialogStyle" parent="Theme.MaterialComponents.Dialog.Alert">
+        <item name="android:background">?above</item>
+        <item name="colorAccent">?accent</item>
+        <item name="android:textColorPrimary">?primaryText</item>
+    </style>
 
     <style name="PrivateThemeBase" parent="Theme.AppCompat.NoActionBar">
         <!-- Android system styling -->
+        <item name="android:windowContentTransitions">true</item>
         <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
         <item name="android:progressBarStyleHorizontal">@style/progressBarStyleHorizontal</item>
         <item name="android:statusBarColor">@color/foundation_private_theme</item>
         <item name="android:windowBackground">@color/foundation_private_theme</item>
         <item name="android:colorEdgeEffect">@color/accent_private_theme</item>
         <item name="android:colorAccent">@color/primary_text_private_theme</item>
-        <item name="android:colorControlActivated">@color/accent_bright_private_theme</item>
+        <item name="android:colorControlActivated">@color/accent_high_contrast_private_theme</item>
+        <item name="android:textColorPrimary">@color/primary_text_private_theme</item>
+        <item name="android:textColorSecondary">@color/secondary_text_private_theme</item>
+        <item name="alertDialogStyle">@style/DialogStyle</item>
+        <item name="alertDialogTheme">@style/DialogStyle</item>
+
+        <!-- Inactive thumb color -->
+        <item name="colorSwitchThumbNormal">@color/toggle_off_knob_dark_theme</item>
+        <!-- Inactive track color(30% transparency) -->
+        <item name="android:colorForeground">@color/toggle_off_track_dark_theme</item>
 
         <!-- Updated color attributes -->
         <item name="primaryText">@color/primary_text_private_theme</item>
         <item name="secondaryText">@color/secondary_text_private_theme</item>
+        <item name="contrastText">@color/contrast_text_private_theme</item>
         <item name="accent">@color/accent_private_theme</item>
         <item name="accentBright">@color/accent_bright_private_theme</item>
+        <item name="accentHighContrast">@color/accent_high_contrast_private_theme</item>
         <item name="foundation">@color/foundation_private_theme</item>
         <item name="above">@color/above_private_theme</item>
-        <item name="aboveDarkened">@color/above_darkened_private_theme</item>
+        <item name="inset">@color/inset_private_theme</item>
         <item name="neutral">@color/neutral_private_theme</item>
+        <item name="neutralFaded">@color/neutral_faded_private_theme</item>
+        <item name="shadow">@color/shadow_private_theme</item>
+        <item name="destructive">@color/destructive_private_theme</item>
+        <item name="scrimStart">@color/scrimStart_private_theme</item>
+        <item name="scrimEnd">@color/scrimEnd_private_theme</item>
 
         <!-- Drawables -->
-        <item name="fenixLogo">@drawable/ic_logo_wordmark_white</item>
+        <item name="fenixLogo">@drawable/ic_logo_wordmark_private</item>
+        <item name="homeBackground">@drawable/private_home_background_gradient</item>
         <item name="privateBrowsingButtonBackground">@color/accent_private_theme</item>
+        <item name="privateBrowsingButtonAccent">@color/above_private_theme</item>
+
     </style>
 
-    <style name="PrivateTheme" parent="PrivateThemeBase"/>
+    <style name="Mozac.Browser.Menu" parent="" tools:ignore="UnusedResources">
+        <item name="cardBackgroundColor">?above</item>
+    </style>
+
+    <style name="PrivateTheme" parent="PrivateThemeBase" />
 
     <!-- Fade animation for theme switching -->
     <style name="WindowAnimationTransition">
-        <item name="android:windowEnterAnimation">@android:anim/fade_in</item>
-        <item name="android:windowExitAnimation">@android:anim/fade_out</item>
+        <item name="android:windowEnterAnimation">@anim/fade_in</item>
+        <item name="android:windowExitAnimation">@anim/fade_out</item>
     </style>
 
     <style name="search_pill" parent="Widget.AppCompat.Button.Borderless">
@@ -89,6 +139,24 @@
         <item name="android:paddingEnd">24dp</item>
     </style>
 
+    <style name="CreateCollectionDialogStyle" parent="NormalTheme">
+        <item name="android:textAppearance">@style/TextAppearance.AppCompat</item>
+        <item name="android:colorControlNormal">?accentHighContrast</item>
+        <item name="android:colorControlActivated">?accentHighContrast</item>
+        <item name="android:colorControlHighlight">?accentBright</item>
+
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@style/Animation.Design.BottomSheetDialog</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+        <item name="windowActionBar">false</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
     <style name="CurrentSessionBottomSheetDialogTheme" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/CurrentSessionBottomSheetStyle</item>
         <item name="android:textColor">@color/primary_text_normal_theme</item>
@@ -112,10 +180,32 @@
         <item name="android:letterSpacing">0.03</item>
     </style>
 
+    <style name="Header16TextStyle" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">?primaryText</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <style name="Header14TextStyle" parent="TextAppearance.MaterialComponents.Body2">
         <item name="android:textColor">?primaryText</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Header12TextStyle" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">?secondaryText</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Body14TextStyle" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">?primaryText</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="SubtitleTextStyle" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">?secondaryText</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <style name="ToolbarTitleTextStyle" parent="HeaderTextStyle">
@@ -131,7 +221,7 @@
     </style>
 
     <style name="QuickSettingsText">
-        <item name="android:textColor">?primaryText</item>
+        <item name="android:textColor">@color/state_list_text_color</item>
         <item name="android:textSize">14sp</item>
         <item name="android:paddingStart">16dp</item>
         <item name="android:gravity">center_vertical</item>
@@ -147,6 +237,16 @@
         <item name="android:paddingEnd">24dp</item>
         <item name="android:gravity">end|center_vertical</item>
         <item name="android:background">?android:attr/selectableItemBackground</item>
-        <item name="android:textColor">@color/photonBlue50</item>
+        <item name="android:textColor">?accentBright</item>
+    </style>
+
+    <style name="OnboardingCardLight">
+        <item name="android:background">@drawable/onboarding_card_background_light</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:layout_marginBottom">16dp</item>
+    </style>
+
+    <style name="OnboardingCardDark" parent="OnboardingCardLight">
+        <item name="android:background">@drawable/onboarding_card_background_dark</item>
     </style>
 </resources>

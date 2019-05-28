@@ -13,6 +13,7 @@ import io.reactivex.Observer
 import io.reactivex.functions.Consumer
 import mozilla.components.browser.awesomebar.BrowserAwesomeBar
 import mozilla.components.browser.search.SearchEngine
+import mozilla.components.feature.awesomebar.provider.BookmarksStorageSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.ClipboardSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.HistoryStorageSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
@@ -47,6 +48,7 @@ class AwesomeBarUIView(
     private var sessionProvider: SessionSuggestionProvider? = null
     private var historyStorageProvider: HistoryStorageSuggestionProvider? = null
     private var shortcutsEnginePickerProvider: ShortcutsSuggestionProvider? = null
+    private var bookmarksStorageSuggestionProvider: BookmarksStorageSuggestionProvider? = null
 
     private val searchSuggestionProvider: SearchSuggestionProvider?
         get() = searchSuggestionFromShortcutProvider ?: defaultSearchSuggestionProvider!!
@@ -107,19 +109,26 @@ class AwesomeBarUIView(
                 SessionSuggestionProvider(
                     components.core.sessionManager,
                     components.useCases.tabsUseCases.selectTab,
-                    components.utils.icons
+                    components.core.icons
                 )
 
             historyStorageProvider =
                 HistoryStorageSuggestionProvider(
                     components.core.historyStorage,
                     loadUrlUseCase,
-                    components.utils.icons
+                    components.core.icons
+                )
+
+            bookmarksStorageSuggestionProvider =
+                BookmarksStorageSuggestionProvider(
+                    components.core.bookmarksStorage,
+                    loadUrlUseCase,
+                    components.core.icons
                 )
 
             if (Settings.getInstance(container.context).showSearchSuggestions()) {
-                val draw = getDrawable(R.drawable.ic_search)
-                draw?.setColorFilter(
+                val searchDrawable = getDrawable(R.drawable.ic_search)
+                searchDrawable?.setColorFilter(
                     ContextCompat.getColor(
                         this,
                         DefaultThemeManager.resolveAttribute(R.attr.primaryText, this)
@@ -134,7 +143,7 @@ class AwesomeBarUIView(
                         fetchClient = components.core.client,
                         mode = SearchSuggestionProvider.Mode.MULTIPLE_SUGGESTIONS,
                         limit = 3,
-                        icon = draw?.toBitmap()
+                        icon = searchDrawable?.toBitmap()
                     )
             }
 
@@ -156,17 +165,25 @@ class AwesomeBarUIView(
         }
 
         if (Settings.getInstance(container.context).shouldShowVisitedSitesBookmarks) {
+            view.addProviders(bookmarksStorageSuggestionProvider!!)
             view.addProviders(historyStorageProvider!!)
         }
 
-        view.addProviders(
-            clipboardSuggestionProvider!!,
-            sessionProvider!!
-        )
+        view.addProviders(sessionProvider!!)
     }
 
     private fun showSearchSuggestionProvider() {
-        view.addProviders(searchSuggestionProvider!!)
+        if (Settings.getInstance(container.context).showSearchSuggestions()) {
+            view.addProviders(searchSuggestionProvider!!)
+        }
+    }
+
+    private fun updateLinkVisibility() {
+        if (state?.query?.isEmpty() == true) {
+            view.addProviders(clipboardSuggestionProvider!!)
+        } else {
+            view.removeProviders(clipboardSuggestionProvider!!)
+        }
     }
 
     private fun setShortcutEngine(engine: SearchEngine) {
@@ -196,5 +213,7 @@ class AwesomeBarUIView(
 
         view.onInputChanged(it.query)
         state = it
+
+        updateLinkVisibility()
     }
 }

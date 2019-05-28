@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- #2770 - Added ability to receive tabs from other FxA devices
+- #919 - Enabled bookmark synchronization
 - #916 - Added the ability to save and delete bookmarks
 - #356 - Added the ability to delete history
 - #208 - Added normal browsing dark mode (advised to use attrs from now on for most referenced colors)
@@ -37,8 +39,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - #1312 - Added clear textfield buttons for editing bookmarks
 - #1312 - Added a missing edit action for bookmark selections
 - #974 - Added telemetry for bookmarks
+- #113 - Added QR code scanner
+- #975 - Added telemetry for preference switches
+- #1955 - Added a confirmation dialog for QR code and barcode searches
+- #1874 - Added a "Turn on Sync" fragment for Firefox Accounts login and sign up
+- #2308 - Update the deprecated BitmapDrawable constructor
+- #1311 - Enable downloads in custom tabs.
+- #1874 - Added TOP info panel dialog for custom tabs.
+- #1411 - Added disabled style for disabled permissions items in site info panel.
+- #1735 - Adds API to see the release channel
+- #2318 - Added Firefox Accounts Pairing feature to "Turn On Sync" options
+- #2390 - Adds Onboarding for Fenix
+- #2531 - Adds link to privacy policy in settings
+- #225 - Adds the ability to delete all browsing data
 
 ### Changed
 - #1429 - Updated site permissions ui for MVP
 - #1599 - Fixed a crash creating a bookmark for a custom tab
+- #1414 - Fixed site permissions settings getting reset in Android 6.
+- #1994 - Made app state persist better when rotating the screen
+- #654 - Updated Refresh button to turn into Stop button while menu is open.
+- [AC #2725](https://github.com/mozilla-mobile/android-components/issues/2725) Updated tracking protectionPolicy to [recommend](https://github.com/mozilla-mobile/android-components/blob/master/components/concept/engine/src/main/java/mozilla/components/concept/engine/EngineSession.kt#L156)
 ### Removed

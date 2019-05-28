@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.library
 
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffColorFilter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -12,13 +14,15 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import kotlinx.android.synthetic.main.fragment_library.*
 import mozilla.appservices.places.BookmarkRoot
 import org.mozilla.fenix.R
-import org.mozilla.fenix.library.bookmarks.BookmarkFragmentArgs
-import org.mozilla.fenix.utils.ItsNotBrokenSnack
+import org.mozilla.fenix.components.metrics.Event
+import org.mozilla.fenix.ext.getColorFromAttr
+import org.mozilla.fenix.ext.requireComponents
 
 class LibraryFragment : Fragment() {
 
@@ -37,6 +41,8 @@ class LibraryFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
+
+        setToolbarColor()
         (activity as AppCompatActivity).title = getString(R.string.library_title)
         (activity as AppCompatActivity).supportActionBar?.show()
     }
@@ -44,17 +50,21 @@ class LibraryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        libraryHistory.setOnClickListener(
-            Navigation.createNavigateOnClickListener(
-                LibraryFragmentDirections.actionLibraryFragmentToHistoryFragment().actionId,
-                null
-            )
-        )
+        libraryHistory.setOnClickListener {
+            requireComponents.analytics.metrics
+                .track(Event.LibrarySelectedItem(view.context.getString(R.string.library_history)))
+            Navigation.findNavController(view)
+                .navigate(LibraryFragmentDirections.actionLibraryFragmentToHistoryFragment())
+        }
 
-        libraryBookmarks.setOnClickListener(Navigation.createNavigateOnClickListener(
-            LibraryFragmentDirections.actionLibraryFragmentToBookmarksFragment(BookmarkRoot.Root.id).actionId,
-            BookmarkFragmentArgs(BookmarkRoot.Root.id).toBundle()
-        ))
+        libraryBookmarks.setOnClickListener {
+            requireComponents.analytics.metrics
+                .track(Event.LibrarySelectedItem(view.context.getString(R.string.library_bookmarks)))
+            Navigation.findNavController(view)
+                .navigate(LibraryFragmentDirections.actionLibraryFragmentToBookmarksFragment(BookmarkRoot.Mobile.id))
+        }
+
+        requireComponents.analytics.metrics.track(Event.LibraryOpened)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -67,12 +77,24 @@ class LibraryFragment : Fragment() {
                 Navigation.findNavController(requireActivity(), R.id.container).navigateUp()
                 true
             }
-            R.id.librarySearch -> {
-                // TODO Library Search
-                ItsNotBrokenSnack(context!!).showSnackbar(issueNumber = "1118")
-                true
-            }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        requireComponents.analytics.metrics.track(Event.LibraryClosed)
+    }
+
+    private fun setToolbarColor() {
+        val toolbar = (activity as AppCompatActivity).findViewById<Toolbar>(R.id.navigationToolbar)
+
+        val backgroundColor = R.attr.foundation.getColorFromAttr(context!!)
+        val foregroundColor = R.attr.primaryText.getColorFromAttr(context!!)
+
+        toolbar.setBackgroundColor(backgroundColor)
+        toolbar.setTitleTextColor(foregroundColor)
+        toolbar.navigationIcon?.colorFilter =
+                PorterDuffColorFilter(foregroundColor, PorterDuff.Mode.SRC_IN)
     }
 }

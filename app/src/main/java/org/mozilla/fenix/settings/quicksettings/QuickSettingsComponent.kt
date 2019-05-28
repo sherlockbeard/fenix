@@ -9,12 +9,14 @@ import android.view.ViewGroup
 import mozilla.components.feature.sitepermissions.SitePermissions
 import mozilla.components.support.ktx.kotlin.toUri
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.mvi.ViewState
+import org.mozilla.fenix.mvi.Change
 import org.mozilla.fenix.mvi.Action
 import org.mozilla.fenix.mvi.ActionBusFactory
-import org.mozilla.fenix.mvi.Change
 import org.mozilla.fenix.mvi.UIComponent
+import org.mozilla.fenix.mvi.UIComponentViewModelBase
+import org.mozilla.fenix.mvi.UIComponentViewModelProvider
 import org.mozilla.fenix.mvi.UIView
-import org.mozilla.fenix.mvi.ViewState
 import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.settings.toStatus
 import org.mozilla.fenix.settings.toggle
@@ -23,47 +25,18 @@ import org.mozilla.fenix.utils.Settings
 class QuickSettingsComponent(
     private val container: ViewGroup,
     bus: ActionBusFactory,
-    override var initialState: QuickSettingsState
+    viewModelProvider: UIComponentViewModelProvider<QuickSettingsState, QuickSettingsChange>
 ) : UIComponent<QuickSettingsState, QuickSettingsAction, QuickSettingsChange>(
     bus.getManagedEmitter(QuickSettingsAction::class.java),
-    bus.getSafeManagedObservable(QuickSettingsChange::class.java)
+    bus.getSafeManagedObservable(QuickSettingsChange::class.java),
+    viewModelProvider
 ) {
-    override val reducer: (QuickSettingsState, QuickSettingsChange) -> QuickSettingsState = { state, change ->
-        when (change) {
-            is QuickSettingsChange.Change -> {
-                state.copy(
-                    mode = QuickSettingsState.Mode.Normal(
-                        change.url,
-                        change.isSecured,
-                        change.isTrackingProtectionOn,
-                        change.sitePermissions
-                    )
-                )
-            }
-            is QuickSettingsChange.PermissionGranted -> {
-                state.copy(
-                    mode = QuickSettingsState.Mode.ActionLabelUpdated(change.phoneFeature, change.sitePermissions)
-                )
-            }
-            is QuickSettingsChange.PromptRestarted -> {
-                state.copy(
-                    mode = QuickSettingsState.Mode.CheckPendingFeatureBlockedByAndroid(change.sitePermissions)
-                )
-            }
-            is QuickSettingsChange.Stored -> {
-                state.copy(
-                    mode = QuickSettingsState.Mode.ActionLabelUpdated(change.phoneFeature, change.sitePermissions)
-                )
-            }
-        }
-    }
-
     override fun initView(): UIView<QuickSettingsState, QuickSettingsAction, QuickSettingsChange> {
         return QuickSettingsUIView(container, actionEmitter, changesObservable, container)
     }
 
     init {
-        render(reducer)
+        bind()
     }
 
     fun toggleSitePermission(
@@ -87,10 +60,11 @@ class QuickSettingsComponent(
                 PhoneFeature.MICROPHONE -> microphone = microphone.toggle()
                 PhoneFeature.NOTIFICATION -> notification = notification.toggle()
             }
-            context.components.storage.addSitePermissionException(origin, location, notification, microphone, camera)
+            context.components.core.permissionStorage
+                .addSitePermissionException(origin, location, notification, microphone, camera)
         } else {
             val updatedSitePermissions = sitePermissions.toggle(featurePhone)
-            context.components.storage.updateSitePermissions(updatedSitePermissions)
+            context.components.core.permissionStorage.updateSitePermissions(updatedSitePermissions)
             updatedSitePermissions
         }
     }
@@ -118,6 +92,7 @@ data class QuickSettingsState(val mode: Mode) : ViewState {
 
 sealed class QuickSettingsAction : Action {
     data class SelectReportProblem(val url: String) : QuickSettingsAction()
+    object SelectTrackingProtectionSettings : QuickSettingsAction()
     data class ToggleTrackingProtection(val trackingProtection: Boolean) : QuickSettingsAction()
     data class SelectBlockedByAndroid(val permissions: Array<String>) : QuickSettingsAction()
     data class TogglePermission(val featurePhone: PhoneFeature) : QuickSettingsAction()
@@ -136,4 +111,40 @@ sealed class QuickSettingsChange : Change {
 
     data class PromptRestarted(val sitePermissions: SitePermissions?) : QuickSettingsChange()
     data class Stored(val phoneFeature: PhoneFeature, val sitePermissions: SitePermissions?) : QuickSettingsChange()
+}
+
+class QuickSettingsViewModel(
+    initialState: QuickSettingsState
+) : UIComponentViewModelBase<QuickSettingsState, QuickSettingsChange>(initialState, reducer) {
+    companion object {
+        val reducer: (QuickSettingsState, QuickSettingsChange) -> QuickSettingsState = { state, change ->
+            when (change) {
+                is QuickSettingsChange.Change -> {
+                    state.copy(
+                        mode = QuickSettingsState.Mode.Normal(
+                            change.url,
+                            change.isSecured,
+                            change.isTrackingProtectionOn,
+                            change.sitePermissions
+                        )
+                    )
+                }
+                is QuickSettingsChange.PermissionGranted -> {
+                    state.copy(
+                        mode = QuickSettingsState.Mode.ActionLabelUpdated(change.phoneFeature, change.sitePermissions)
+                    )
+                }
+                is QuickSettingsChange.PromptRestarted -> {
+                    state.copy(
+                        mode = QuickSettingsState.Mode.CheckPendingFeatureBlockedByAndroid(change.sitePermissions)
+                    )
+                }
+                is QuickSettingsChange.Stored -> {
+                    state.copy(
+                        mode = QuickSettingsState.Mode.ActionLabelUpdated(change.phoneFeature, change.sitePermissions)
+                    )
+                }
+            }
+        }
+    }
 }

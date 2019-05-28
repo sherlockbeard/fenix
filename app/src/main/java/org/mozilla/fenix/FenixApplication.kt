@@ -7,12 +7,11 @@ package org.mozilla.fenix
 import android.annotation.SuppressLint
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.preference.PreferenceManager
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.Deferred
 import mozilla.components.concept.fetch.Client
 import mozilla.components.lib.fetch.httpurlconnection.HttpURLConnectionClient
 import mozilla.components.service.fretboard.Fretboard
@@ -29,16 +28,20 @@ import org.mozilla.fenix.utils.Settings
 import java.io.File
 
 @SuppressLint("Registered")
+@Suppress("TooManyFunctions")
 open class FenixApplication : Application() {
     lateinit var fretboard: Fretboard
     lateinit var experimentLoader: Deferred<Boolean>
     var experimentLoaderComplete: Boolean = false
 
-    val components by lazy { Components(this) }
+    open val components by lazy { Components(this) }
 
     override fun onCreate() {
         super.onCreate()
+        setupApplication()
+    }
 
+    open fun setupApplication() {
         // loadExperiments does things that run in parallel with the rest of setup.
         // Call the function as early as possible so there's maximum overlap.
         experimentLoader = loadExperiments()
@@ -164,8 +167,7 @@ open class FenixApplication : Application() {
         return try {
             val megazordClass = Class.forName("mozilla.appservices.FenixMegazord")
             val megazordInitMethod = megazordClass.getDeclaredMethod("init", Lazy::class.java)
-            // https://github.com/mozilla-mobile/android-components/issues/2715
-            val client: Lazy<Client> = lazy { HttpURLConnectionClient() }
+            val client: Lazy<Client> = lazy { components.core.client }
             megazordInitMethod.invoke(megazordClass, client)
             true
         } catch (e: ClassNotFoundException) {
@@ -213,14 +215,12 @@ open class FenixApplication : Application() {
                     AppCompatDelegate.setDefaultNightMode(
                         AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
                     )
-                    PreferenceManager.getDefaultSharedPreferences(this).edit()
-                        .putBoolean(getString(R.string.pref_key_follow_device_theme), true).apply()
+                    Settings.getInstance(this).setFollowDeviceTheme(true)
                 } else {
                     AppCompatDelegate.setDefaultNightMode(
                         AppCompatDelegate.MODE_NIGHT_NO
                     )
-                    PreferenceManager.getDefaultSharedPreferences(this).edit()
-                        .putBoolean(getString(R.string.pref_key_light_theme), true).apply()
+                    Settings.getInstance(this).setLightTheme(true)
                 }
             }
         }

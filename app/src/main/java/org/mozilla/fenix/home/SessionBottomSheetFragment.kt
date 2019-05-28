@@ -16,6 +16,7 @@ import kotlinx.android.synthetic.main.session_bottom_sheet.view.*
 import org.mozilla.fenix.DefaultThemeManager
 import org.mozilla.fenix.utils.ItsNotBrokenSnack
 import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.getColorFromAttr
 
 class SessionBottomSheetFragment : BottomSheetDialogFragment(), LayoutContainer {
     sealed class SessionType {
@@ -42,7 +43,7 @@ class SessionBottomSheetFragment : BottomSheetDialogFragment(), LayoutContainer 
         view.current_session_card_title.text = getCardTitle()
         view.current_session_card_tab_list.text = getTabTitles()
         view.archive_session_button.apply {
-            val drawable = ContextCompat.getDrawable(context!!, R.drawable.ic_archive)
+            val drawable = ContextCompat.getDrawable(context!!, R.drawable.ic_tab_collection)
             drawable?.setColorFilter(
                 ContextCompat.getColor(
                     context!!,
@@ -58,16 +59,13 @@ class SessionBottomSheetFragment : BottomSheetDialogFragment(), LayoutContainer 
         view.delete_session_button.apply {
             val drawable = ContextCompat.getDrawable(context!!, R.drawable.ic_delete)
             drawable?.setColorFilter(
-                ContextCompat.getColor(
-                    context!!,
-                    R.color.delete_color
-                ), PorterDuff.Mode.SRC_IN
+                R.attr.destructive.getColorFromAttr(context), PorterDuff.Mode.SRC_IN
             )
             setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
         }
 
         view.send_and_share_session_button.apply {
-            val drawable = ContextCompat.getDrawable(context!!, R.drawable.ic_share)
+            val drawable = ContextCompat.getDrawable(context!!, R.drawable.mozac_ic_share)
             drawable?.setColorFilter(
                 ContextCompat.getColor(
                     context!!,
@@ -92,7 +90,7 @@ class SessionBottomSheetFragment : BottomSheetDialogFragment(), LayoutContainer 
     private fun getCardTitle(): String? {
         return sessionType?.let {
             when (it) {
-                is SessionType.Current -> getString(R.string.tabs_header_title)
+                is SessionType.Current -> getString(R.string.tab_header_label)
                 is SessionType.Private -> getString(R.string.tabs_header_private_title)
             }
         }

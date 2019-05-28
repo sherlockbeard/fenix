@@ -1,10 +1,7 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<!-- This Source Code Form is subject to the terms of the Mozilla Public
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources>
-
-
     <!-- Home Fragment -->
     <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
     <string name="content_description_menu">More options</string>
@@ -14,6 +11,10 @@
     <string name="content_description_disable_private_browsing_button">Disable private browsing</string>
     <!-- Placeholder text shown in the search bar before a user enters text -->
     <string name="search_hint">Search or enter address</string>
+    <!-- No Open Tabs Message Header -->
+    <string name="no_open_tabs_header">No tabs opened</string>
+    <!-- No Open Tabs Message Description -->
+    <string name="no_open_tabs_description">Your open tabs will be shown here.</string>
 
     <!-- Private Browsing -->
     <!-- Title for private session option -->
@@ -44,7 +45,7 @@
     <!-- Browser menu button that opens the settings menu -->
     <string name="browser_menu_settings">Settings</string>
     <!-- Browser menu button that opens a user's library -->
-    <string name="browser_menu_library">Library</string>
+    <string name="browser_menu_your_library">Your Library</string>
     <!-- Browser menu toggle that requests a desktop site -->
     <string name="browser_menu_desktop_site">Desktop site</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -53,6 +54,8 @@
     <string name="browser_menu_private_tab">Private tab</string>
     <!-- Browser menu button that creates a new tab -->
     <string name="browser_menu_new_tab">New tab</string>
+    <!-- Browser menu button that saves the current tab to a collection -->
+    <string name="browser_menu_save_to_collection">Save to Collection</string>
     <!-- Browser menu button that opens a dialog to report issues with the current site -->
     <string name="browser_menu_report_issue">Report site issue</string>
     <!-- Browser menu button that open a share menu to share the current site -->
@@ -78,11 +81,9 @@
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
     <string name="awesomebar_clipboard_title">Fill link from clipboard</string>
 
-    <!-- Settings Fragment -->
+    <!-- Preferences -->
     <!-- Title for the settings page-->
     <string name="settings">Settings</string>
-
-    <!-- Preferences -->
     <!-- Preference category for basic settings -->
     <string name="preferences_category_basics">Basics</string>
     <!-- Preference category for all links about Fenix -->
@@ -100,6 +101,10 @@
     <!-- Preference linking to about page for Fenix
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="preferences_about">About %1$s</string>
+    <!-- Preference linking to the privacy notice -->
+    <string name="preferences_privacy_notice">Privacy Notice</string>
+    <!-- Preference linking to the your rights SUMO page -->
+    <string name="preferences_your_rights">Your Rights</string>
     <!-- Preference for settings related to saved passwords -->
     <string name="preferences_passwords">Passwords</string>
     <!-- Preference for settings related to saved credit cards and addresses -->
@@ -122,6 +127,8 @@
     <string name="preferences_sign_in_description">Sync bookmarks, history, and more with your Firefox Account</string>
     <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
     <string name="preferences_account_default_name">Firefox Account</string>
+    <!-- Preference text for account title when there was an error syncing FxA -->
+    <string name="preferences_account_sync_error">Reconnect to resume syncing</string>
     <!-- Preference for language -->
     <string name="preferences_language">Language</string>
     <!-- Preference for data choices -->
@@ -142,10 +149,14 @@
     <string name="preferences_sync_category">Choose what to sync</string>
     <!-- Preference for syncing history -->
     <string name="preferences_sync_history">History</string>
+    <!-- Preference for syncing bookmarks -->
+    <string name="preferences_sync_bookmarks">Bookmarks</string>
     <!-- Preference for signing out -->
     <string name="preferences_sign_out">Sign out</string>
+    <!-- Preference displays and allows changing current FxA device name -->
+    <string name="preferences_sync_device_name">Device name</string>
     <!-- Label indicating that sync is in progress -->
-    <string name="sync_syncing">Syncing</string>
+    <string name="sync_syncing">Syncing…</string>
     <!-- Label summary indicating that sync failed. The first parameter is the date stamp showing last time it succeeded -->
     <string name="sync_failed_summary">Sync failed. Last success: %s</string>
     <!-- Label summary showing never synced -->
@@ -154,6 +165,18 @@
     <string name="sync_last_synced_summary">Last synced: %s</string>
     <!-- Label summary showing never synced -->
     <string name="sync_never_synced_summary">Last synced: never</string>
+
+    <!-- Send Tab -->
+    <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
+    <string name="fxa_received_tab_channel_name">Received tabs</string>
+    <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
+    <string name="fxa_received_tab_channel_description">Notifications for tabs received from other Firefox devices.</string>
+    <!--  The body for these is the URL of the tab received  -->
+    <string name="fxa_tab_received_notification_name">Tab Received</string>
+    <!-- When multiple tabs have been received -->
+    <string name="fxa_tabs_received_notification_name">Tabs Received</string>
+    <!-- %s is the device name -->
+    <string name="fxa_tab_received_from_notification_name">Tab from %s</string>
 
     <!-- Advanced Preferences -->
     <!-- Preference for tracking protection settings -->
@@ -164,6 +187,12 @@
     <string name="preferences_tracking_protection_description">Block content and scripts that track you online</string>
     <!-- Preference for tracking protection exceptions -->
     <string name="preferences_tracking_protection_exceptions">Exceptions</string>
+    <!-- Preference description for tracking protection exceptions -->
+    <string name="preferences_tracking_protection_exceptions_description">Tracking Protection is off for these websites</string>
+    <!-- Button in Exceptions Preference to turn on tracking protection for all sites (remove all exceptions) -->
+    <string name="preferences_tracking_protection_exceptions_turn_on_for_all">Turn on for all sites</string>
+    <!-- Description in Quick Settings that tells user tracking protection is off globally for all sites, and links to Settings to turn it on -->
+    <string name="preferences_tracking_protection_turned_off_globally">Turned off globally, go to Settings to turn it on.</string>
 
     <!-- Preference switch for Telemetry -->
     <string name="preferences_telemetry">Telemetry</string>
@@ -173,6 +202,28 @@
     <string name="preferences_mozilla_location_service">Mozilla location service</string>
     <!-- Preference switch for app health report. The first parameter is the name of the application (For example: Fenix) -->
     <string name="preferences_fenix_health_report">%s health report</string>
+
+    <!-- Turn On Sync Preferences -->
+    <!-- Header of the Turn on Sync preference view -->
+    <string name="preferences_sync">Turn on Sync</string>
+    <!-- Preference for pairing -->
+    <string name="preferences_sync_pair">Scan pairing code in desktop Firefox</string>
+    <!-- Preference for account login -->
+    <string name="preferences_sync_sign_in">Sign in</string>
+    <!-- Preference for account creation -->
+    <string name="preferences_sync_create_account">Create an account</string>
+    <!-- Preference for reconnecting to FxA sync -->
+    <string name="preferences_sync_sign_in_to_reconnect">Sign in to reconnect</string>
+    <!-- Preference for removing FxA account -->
+    <string name="preferences_sync_remove_account">Remove account</string>
+
+    <!-- Pairing Feature strings -->
+    <!-- Instructions on how to access pairing -->
+    <string name="pair_instructions"><![CDATA[Visit <b>firefox.com/pair</b> in Firefox on your computer to get your QR code.]]></string>
+    <!-- Button to open camera for pairing -->
+    <string name="pair_open_camera">Open Camera</string>
+    <!-- Button to cancel pairing -->
+    <string name="pair_cancel">Cancel</string>
 
     <!-- Theme Preferences -->
     <!-- Preference for using light theme -->
@@ -193,6 +244,10 @@
     <string name="quick_action_bookmark">Bookmark</string>
     <!-- Button in the browser chrome in the browser to put the the current page in reader mode -->
     <string name="quick_action_read">Read</string>
+    <!-- Button in the browser chrome to exit reader mode -->
+    <string name="quick_action_read_close">Close</string>
+    <!-- Button in the browser chrome to configure reader mode appearance e.g. the used font type and size -->
+    <string name="quick_action_read_appearance">Appearance</string>
     <!-- Content description (not visible, for screen readers etc.): Quick action sheet handle to provide users
         with shortcuts to commonly used actions such as Share, Bookmark etc.. -->
     <string name="quick_action_sheet_handle">Quick actions</string>
@@ -206,6 +261,14 @@
     <string name="library_downloads">Downloads</string>
     <!-- Option in library to open Bookmarks page -->
     <string name="library_bookmarks">Bookmarks</string>
+    <!-- Option in library to open Desktop Bookmarks root page -->
+    <string name="library_desktop_bookmarks_root">Desktop Bookmarks</string>
+    <!-- Option in library to open Desktop Bookmarks "menu" page -->
+    <string name="library_desktop_bookmarks_menu">Bookmarks Menu</string>
+    <!-- Option in library to open Desktop Bookmarks "toolbar" page -->
+    <string name="library_desktop_bookmarks_toolbar">Bookmarks Toolbar</string>
+    <!-- Option in library to open Desktop Bookmarks "unfiled" page -->
+    <string name="library_desktop_bookmarks_unfiled">Other Bookmarks</string>
     <!-- Option in Library to open History page -->
     <string name="library_history">History</string>
     <!-- Option in Library to open Reading List -->
@@ -222,16 +285,26 @@
     <string name="content_description_close_button">Close</string>
 
     <!-- Sessions -->
-    <!-- Title for the list of tabs in the current session -->
-    <string name="tabs_header_title">Current session</string>
+    <!-- Title for the list of tabs -->
+    <string name="tab_header_label">Open tabs</string>
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_title">Private session</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Add tab</string>
     <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
     <string name="close_tab">Close tab</string>
+    <!-- Content description (not visible, for screen readers etc.): Opens the open tabs menu when pressed -->
+    <string name="open_tabs_menu">Open tabs menu</string>
+    <!-- Open tabs menu item to close all tabs -->
+    <string name="tabs_menu_close_all_tabs">Close all tabs</string>
+    <!-- Open tabs menu item to share all tabs -->
+    <string name="tabs_menu_share_tabs">Share tabs</string>
+    <!-- Open tabs menu item to save tabs to collection -->
+    <string name="tabs_menu_save_to_collection">Save to collection</string>
     <!-- Content description (not visible, for screen readers etc.): Opens the tab menu when pressed -->
     <string name="tab_menu">Tab menu</string>
+    <!-- Tab menu item to share the tab -->
+    <string name="tab_share">Share tab</string>
     <!-- Button in the current session menu. Deletes the session when pressed -->
     <string name="current_session_delete">Delete</string>
     <!-- Button in the current session menu. Saves the session when pressed -->
@@ -240,21 +313,31 @@
     <string name="current_session_share">Share</string>
     <!-- Content description (not visible, for screen readers etc.): Title icon for current session menu -->
     <string name="current_session_image">Current session image</string>
-    <!-- Text for the button to save a session -->
-    <string name="session_save">Save session</string>
-    <!-- Text for the button to delete a session -->
-    <string name="session_delete">Delete session</string>
+    <!-- Button to save the current set of tabs into a collection -->
+    <string name="save_to_collection">Save to collection</string>
+    <!-- Text for the menu button to delete a collection -->
+    <string name="collection_delete">Delete collection</string>
+    <!-- Text for the menu button to rename a collection -->
+    <string name="collection_rename">Rename collection</string>
+    <!-- Text for the button to open tabs of the selected collection -->
+    <string name="collection_open_tabs">Open tabs</string>
     <!-- Text for the button to delete a single session -->
     <string name="session_item_delete">Delete</string>
     <!-- Text to tell the user how many more tabs this session has.
         The first parameter is a digit that shows the cardinal number of how many additional tabs the session has. -->
     <string name="session_items_more">%1$d sites…</string>
 
+
     <!-- History -->
     <!-- Text for the button to clear all history -->
     <string name="history_delete_all">Delete history</string>
+    <!-- Text for the dialog to confirm clearing all history -->
+    <string name="history_delete_all_dialog">Are you sure you want to clear your history?</string>
     <!-- Text for the button to delete a single history item -->
     <string name="history_delete_item">Delete</string>
+    <!-- History multi select title in app bar
+    The first parameter is the number of bookmarks selected -->
+    <string name="history_multi_select_title">%1$d selected</string>
     <!-- Text for the button to clear selected history items. The first parameter
         is a digit showing the number of items you have selected -->
     <string name="history_delete_some">Delete %1$d items</string>
@@ -266,12 +349,12 @@
     <string name="history_this_month">This month</string>
     <!-- Text for the header that groups the history older than the last month -->
     <string name="history_older">Older</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Entering full screen mode</string>
+    <!-- Text shown when no history exists -->
+    <string name="history_empty_message">No history here</string>
 
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
-    <string name="tab_crash_title">Sorry. %1$s can’t get that tab back</string>
+    <string name="tab_crash_title_2">Sorry. %1$s can’t load that page.</string>
     <!-- Description text displayed on the tab crash page -->
     <string name="tab_crash_description">You can attempt to restore or close this tab below.</string>
     <!-- Send crash report checkbox text on the tab crash page -->
@@ -287,6 +370,7 @@
     <!-- Content Description for session item share button -->
     <string name="content_description_session_share">Share session</string>
 
+    <!-- Bookmarks -->
     <!-- Content description for bookmarks library menu -->
     <string name="bookmark_menu_content_description">Bookmark menu</string>
     <!-- Screen title for editing bookmarks -->
@@ -301,7 +385,6 @@
     <string name="bookmark_saved_snackbar">Bookmark saved!</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">EDIT</string>
-
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Edit</string>
     <!-- Bookmark overflow menu select button -->
@@ -316,7 +399,8 @@
     <string name="bookmark_menu_open_in_private_tab_button">Open in private tab</string>
     <!-- Bookmark overflow menu delete button -->
     <string name="bookmark_menu_delete_button">Delete</string>
-    <!-- Bookmark multi select title in app bar -->
+    <!-- Bookmark multi select title in app bar
+     The first parameter is the number of bookmarks selected -->
     <string name="bookmarks_multi_select_title">%1$d selected</string>
     <!-- Bookmark editing screen title -->
     <string name="edit_bookmark_fragment_title">Edit bookmark</string>
@@ -346,14 +430,9 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">UNDO</string>
 
-    <!-- Message for copying the URL via long press on the toolbar -->
-    <string name="url_copied">URL copied</string>
-
-
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Go to Settings</string>
-
     <!-- Content description (not visible, for screen readers etc.): Quick settings sheet
         to give users access to site specific information / settings. For example:
         Secure settings status and a button to modify site permissions -->
@@ -362,11 +441,11 @@
     <string name="phone_feature_recommended">Recommended</string>
     <!-- button that allows editing site permissions settings -->
     <string name="quick_settings_sheet_manage_site_permissions">Manage site permissions</string>
-    <!-- Button label for clear all the information of a site permissions-->
+    <!-- Button label for clearing all the information of site permissions-->
     <string name="clear_permissions">Clear permissions</string>
-    <!-- Button label for clear a site permissions-->
+    <!-- Button label for clearing a site permission-->
     <string name="clear_permission">Clear permission</string>
-    <!-- Button label for clear all the information fall all sites-->
+    <!-- Button label for clearing all the information on all sites-->
     <string name="clear_permissions_on_all_sites">Clear permissions on all sites</string>
     <!-- Preference for altering the camera access for all websites -->
     <string name="preference_phone_feature_camera">Camera</string>
@@ -386,10 +465,193 @@
     <string name="phone_feature_blocked_by_android">Blocked by Android</string>
     <!-- Preference for showing a list of websites that the default configurations won't apply to them -->
     <string name="preference_exceptions">Exceptions</string>
-    <!-- Action in Quick Settings dialog to report a site problem related to tracking protection -->
-    <string name="tracking_protection_report_problem">Report a problem</string>
     <!-- Summary of tracking protection preference if tracking protection is set to on -->
     <string name="tracking_protection_on">On</string>
     <!-- Summary of tracking protection preference if tracking protection is set to off -->
     <string name="tracking_protection_off">Off</string>
+
+    <!-- Collections -->
+    <!-- Collections header on home fragment -->
+    <string name="collections_header">Collections</string>
+    <!-- No Open Tabs Message Header -->
+    <string name="no_collections_header">No collections</string>
+    <!-- No Open Tabs Message Description -->
+    <string name="no_collections_description">Your collections will be shown here.</string>
+    <!-- Title for the "select tabs" step of the collection creator -->
+    <string name="create_collection_select_tabs">Select Tabs</string>
+    <!-- Title for the "select collection" step of the collection creator -->
+    <string name="create_collection_select_collection">Select collection</string>
+    <!-- Title for the "name collection" step of the collection creator -->
+    <string name="create_collection_name_collection">Name collection</string>
+    <!-- Button to add new collection for the "select collection" step of the collection creator -->
+    <string name="create_collection_add_new_collection">Add new collection</string>
+    <!-- Button to select all tabs in the "select tabs" step of the collection creator -->
+    <string name="create_collection_select_all">Select All</string>
+    <!-- Text to prompt users to select the tabs to save in the "select tabs" step of the collection creator -->
+    <string name="create_collection_save_to_collection_empty">Select tabs to save</string>
+    <!-- Text to show users how many tabs they have selected in the "select tabs" step of the collection creator.
+     %d is a placeholder for the number of tabs selected. -->
+    <string name="create_collection_save_to_collection_tabs_selected">%d tabs selected</string>
+    <!-- Text to show users they have one tab selected in the "select tabs" step of the collection creator.
+    %d is a placeholder for the number of tabs selected. -->
+    <string name="create_collection_save_to_collection_tab_selected">%d tab selected</string>
+    <!-- Text shown in snackbar when multiple tabs have been saved in a collection -->
+    <string name="create_collection_tabs_saved">Tabs saved!</string>
+    <!-- Text shown in snackbar when one tab has been saved in a collection -->
+    <string name="create_collection_tab_saved">Tab saved!</string>
+    <!-- Content description (not visible, for screen readers etc.): button to close the collection creator -->
+    <string name="create_collection_close">Close</string>
+    <!-- Button to save currently selected tabs in the "select tabs" step of the collection creator-->
+    <string name="create_collection_save">Save</string>
+
+    <!-- Default name for a new collection in "name new collection" step of the collection creator. %d is a placeholder for the number of collections-->
+    <string name="create_collection_default_name">Collection %d</string>
+
+    <!-- Share -->
+    <!-- Share screen header -->
+    <string name="share_header">Send and Share</string>
+    <!-- Sub-header in the dialog to share a link to another app -->
+    <string name="share_link_subheader">Share a link</string>
+    <!-- Sub-header in the dialog to share a link to another sync device -->
+    <string name="share_device_subheader">Send to device</string>
+    <!-- An option from the share dialog to sign into sync -->
+    <string name="sync_sign_in">Sign in to Sync</string>
+    <!-- An option from the share dialog to send link to all other sync devices -->
+    <string name="sync_send_to_all">Send to all devices</string>
+    <!-- An option from the share dialog to reconnect to sync -->
+    <string name="sync_reconnect">Reconnect to Sync</string>
+    <!-- Text displayed when sync is offline and cannot be accessed -->
+    <string name="sync_offline">Offline</string>
+    <!-- An option to connect additional devices -->
+    <string name="sync_connect_device">Connect another device</string>
+    <!-- The dialog text shown when additional devices are not available -->
+    <string name="sync_connect_device_dialog">To send a tab, sign in to Firefox on at least one other device.</string>
+    <!-- Confirmation dialog button -->
+    <string name="sync_confirmation_button">Got it</string>
+
+    <!-- Notifications -->
+    <!-- Text shown in snackbar when user deletes a collection -->
+    <string name="snackbar_collection_deleted">Collection deleted</string>
+    <!-- Text shown in snackbar when user renames a collection -->
+    <string name="snackbar_collection_renamed">Collection renamed</string>
+    <!-- Text shown in snackbar when user deletes a tab -->
+    <string name="snackbar_tab_deleted">Tab deleted</string>
+    <!-- Text shown in snackbar when user deletes all tabs -->
+    <string name="snackbar_tabs_deleted">Tabs deleted</string>
+    <!-- Text for action to undo deleting a tab or collection shown in snackbar -->
+    <string name="snackbar_deleted_undo">UNDO</string>
+    <!-- QR code scanner prompt which appears after scanning a code, but before navigating to it
+        First parameter is the name of the app, second parameter is the URL or text scanned-->
+    <string name="qr_scanner_confirmation_dialog_message">Allow %1$s to open %2$s</string>
+    <!-- QR code scanner prompt dialog positive option to allow navigation to scanned link -->
+    <string name="qr_scanner_dialog_positive">ALLOW</string>
+    <!-- QR code scanner prompt dialog positive option to deny navigation to scanned link -->
+    <string name="qr_scanner_dialog_negative">DENY</string>
+    <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
+    <string name="tab_collection_dialog_message">Are you sure you want to delete %1$s?</string>
+    <!-- Tab collection deletion prompt dialog option to delete the collection -->
+    <string name="tab_collection_dialog_positive">Delete</string>
+    <!-- Tab collection deletion prompt dialog option to cancel deleting the collection -->
+    <string name="tab_collection_dialog_negative">Cancel</string>
+    <!-- Text displayed in a notification when the user enters full screen mode -->
+    <string name="full_screen_notification">Entering full screen mode</string>
+    <!-- Message for copying the URL via long press on the toolbar -->
+    <string name="url_copied">URL copied</string>
+    <!-- Sample text for accessiblity font size -->
+    <string name="accessibility_text_size_sample_text">The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.</string>
+    <!-- Summary for Accessiblity Text Size Scaling Preference -->
+    <string name="preference_accessibility_text_size_summary">Make text on websites larger or smaller</string>
+    <!-- Title for Accessiblity Text Size Scaling Preference -->
+    <string name="preference_accessibility_font_size_title">Font Size</string>
+
+    <!-- Title for Accessiblity Text Automatic Size Scaling Preference -->
+    <string name="preference_accessibility_auto_size">Automatic Font Sizing</string>
+    <!-- Summary for Accessiblity Text Automatic Size Scaling Preference -->
+    <string name="preference_accessibility_auto_size_summary">Font size will match your Android settings. Disable to manage font size here.</string>
+
+    <!-- Title for the Delete browsing data preference -->
+    <string name="preferences_delete_browsing_data">Delete browsing data</string>
+    <!-- Title for the tabs item in Delete browsing data -->
+    <string name="preferences_delete_browsing_data_tabs_title">Open Tabs</string>
+    <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
+    <string name="preferences_delete_browsing_data_tabs_subtitle">%d tabs</string>
+    <!-- Title for the data and history items in Delete browsing data -->
+    <string name="preferences_delete_browsing_data_browsing_data_title">Browsing history and site data</string>
+    <!-- Subtitle for the data and history items item in Delete browsing data, parameter will be replaced with the
+        number of history items the user has -->
+    <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d addresses</string>
+    <!-- Title for the collections item in Delete browsing data -->
+    <string name="preferences_delete_browsing_data_collections_title">Collections</string>
+    <!-- Subtitle for the collections item in Delete browsing data, parameter will be replaced with the
+        number of collections that will be deleted -->
+    <string name="preferences_delete_browsing_data_collections_subtitle">%d collections</string>
+    <!-- Text for the button to delete browsing data -->
+    <string name="preferences_delete_browsing_data_button">Delete browsing data</string>
+
+    <!-- Dialog message to the user asking to delete browsing data. Parameter is the name of the app (e.g. Fenix) -->
+    <string name="preferences_delete_browsing_data_prompt_message">Allow %s to delete your browsing data?</string>
+    <!-- Text for the cancel button for the data deletion dialog -->
+    <string name="preferences_delete_browsing_data_prompt_cancel">Don’t allow</string>
+    <!-- Text for the allow button for the data deletion dialog -->
+    <string name="preferences_delete_browsing_data_prompt_allow">Allow</string>
+
+    <!-- Onboarding -->
+    <!-- Text for onboarding welcome message
+    The first parameter is the name of the app (e.g. Firefox Preview) -->
+    <string name="onboarding_header">Welcome to %s!</string>
+    <!-- text for the Firefox Accounts section header -->
+    <string name="onboarding_fxa_section_header">Already have an account?</string>
+    <!-- text for the Firefox Preview feature section header
+    The first parameter is the name of the app (e.g. Firefox Preview) -->
+    <string name="onboarding_feature_section_header">Get to know %s</string>
+    <!-- text for the theme picker onboarding card header -->
+    <string name="onboarding_theme_picker_header">Choose your theme</string>
+    <!-- text for the theme picker onboarding card description -->
+    <string name="onboarding_theme_picker_description">Try dark theme: easier on your battery and your eyes.</string>
+    <!-- text for the firefox account onboarding card header
+    The first parameter is the name of the app (e.g. Firefox Preview) -->
+    <string name="onboarding_firefox_account_header">Get the most out of %s.</string>
+    <!-- text for the firefox account onboarding card header when we detect you're already signed in to
+        another Firefox browser. (The word `Firefox` should not be translated -->
+    <string name="onboarding_firefox_account_auto_signin_header">You are signed in to another Firefox browser on this phone.</string>
+    <!-- text for the button to sign into your Firefox account. The word "Firefox" should not be translated -->
+    <string name="onboarding_firefox_account_sign_in">Sign in to Firefox</string>
+    <!-- text for the button to stay signed into your Firefox account. -->
+    <string name="onboarding_firefox_account_stay_signed_in">Stay signed in</string>
+    <!-- text for the button to sign out of your Firefox account. -->
+    <string name="onboarding_firefox_account_sign_out">Sign out</string>
+    <!-- text for the tracking protection onboarding card header -->
+    <string name="onboarding_tracking_protection_header">Protect yourself</string>
+    <!-- text for the tracking protection card description
+    The first parameter is the name of the app (e.g. Firefox Preview) -->
+    <string name="onboarding_tracking_protection_description">%s blocks ad trackers that follow you around the web.
+    </string>
+    <!-- text for the private browsing onboarding card header -->
+    <string name="onboarding_private_browsing_header">Browse privately</string>
+    <!-- text for the private browsing onboarding card description
+    The first parameter is an icon that represents private browsing -->
+    <string name="onboarding_private_browsing_description">When you see the %s icon, private browsing is just a tap away.
+   </string>
+    <!-- text for the privacy notice onboarding card header -->
+    <string name="onboarding_privacy_notice_header">Your privacy</string>
+    <!-- text for the privacy notice onboarding card description
+    The first parameter is the name of the app (e.g. Firefox Preview) -->
+    <string name="onboarding_privacy_notice_description">We’ve designed %s to give you control over what you share
+        online and what you share with us.
+    </string>
+    <!-- Text for the button to read the privacy notice -->
+    <string name="onboarding_privacy_notice_read_button">Read our privacy notice</string>
+
+    <!-- text for the button to finish onboarding -->
+    <string name="onboarding_finish">Start browsing</string>
+
+    <!-- Onboarding theme -->
+    <!-- Automatic theme setting (will follow device setting) -->
+    <string name="onboarding_theme_automatic_title">Automatic</string>
+    <!-- Summary of automatic theme setting (will follow device setting) -->
+    <string name="onboarding_theme_automatic_summary">Adapts to your device settings</string>
+    <!-- Theme setting for dark mode -->
+    <string name="onboarding_theme_dark_title">Dark theme</string>
+    <!-- Theme setting for light mode -->
+    <string name="onboarding_theme_light_title">Light theme</string>
 </resources>

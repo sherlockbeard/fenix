@@ -14,11 +14,14 @@ import io.reactivex.Observable
 import io.reactivex.Observer
 import io.reactivex.functions.Consumer
 import kotlinx.android.synthetic.main.fragment_browser.*
+import kotlinx.android.synthetic.main.layout_quick_action_sheet.*
 import kotlinx.android.synthetic.main.layout_quick_action_sheet.view.*
+import kotlinx.android.synthetic.main.onboarding_privacy_notice.view.*
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.metrics.Event
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.mvi.UIView
+import org.mozilla.fenix.utils.Settings
 
 class QuickActionUIView(
     container: ViewGroup,
@@ -29,6 +32,8 @@ class QuickActionUIView(
     override val view: NestedScrollView = LayoutInflater.from(container.context)
         .inflate(R.layout.component_quick_action_sheet, container, true)
         .findViewById(R.id.nestedScrollQuickAction) as NestedScrollView
+
+    val quickActionSheet = view.quick_action_sheet as QuickActionSheet
 
     init {
         val quickActionSheetBehavior =
@@ -45,7 +50,8 @@ class QuickActionUIView(
                 }
             }
 
-            override fun onSlide(p0: View, p1: Float) {
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                animateOverlay(slideOffset)
             }
         })
 
@@ -67,6 +73,17 @@ class QuickActionUIView(
             actionEmitter.onNext(QuickActionAction.ReadPressed)
             quickActionSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
         }
+        view.quick_action_read_appearance.setOnClickListener {
+            actionEmitter.onNext(QuickActionAction.ReadAppearancePressed)
+            quickActionSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        }
+    }
+
+    /**
+     * Changes alpha of overlay based on new offset of this sheet within [-1,1] range.
+     */
+    private fun animateOverlay(offset: Float) {
+        overlay.alpha = (1 - offset)
     }
 
     private fun updateImportantForAccessibility(state: Int) {
@@ -87,6 +104,40 @@ class QuickActionUIView(
     }
 
     override fun updateView() = Consumer<QuickActionState> {
-        view.quick_action_read.visibility = if (it.readable) View.VISIBLE else View.GONE
+        view.quick_action_read.apply {
+            visibility = if (it.readable) View.VISIBLE else View.GONE
+
+            val shouldNotify = Settings.getInstance(context).preferences
+                .getBoolean(context.getString(R.string.pref_key_reader_mode_notification), true)
+            updateReaderModeButton(it.readable && shouldNotify)
+
+            isSelected = it.readerActive
+            text = if (it.readerActive) {
+                context.getString(R.string.quick_action_read_close)
+            } else {
+                context.getString(R.string.quick_action_read)
+            }
+        }
+        view.quick_action_read_appearance.visibility = if (it.readerActive) View.VISIBLE else View.GONE
+        view.quick_action_bookmark.isSelected = it.bookmarked
+
+        if (it.bounceNeeded && Settings.getInstance(view.context).shouldAutoBounceQuickActionSheet) {
+            quickActionSheet.bounceSheet()
+        }
+    }
+
+    private fun updateReaderModeButton(withNotification: Boolean) {
+        if (withNotification) {
+            quickActionSheet.bounceSheet()
+            val readerTwoStateDrawable = view.context.getDrawable(R.drawable.reader_two_state_with_notification)
+            view.quick_action_read
+                .setCompoundDrawablesWithIntrinsicBounds(null, readerTwoStateDrawable, null, null)
+            Settings.getInstance(view.context).preferences.edit()
+                .putBoolean(view.context.getString(R.string.pref_key_reader_mode_notification), false).apply()
+        } else {
+            val readerTwoStateDrawable = view.context.getDrawable(R.drawable.reader_two_state)
+            view.quick_action_read
+                .setCompoundDrawablesWithIntrinsicBounds(null, readerTwoStateDrawable, null, null)
+        }
     }
 }

@@ -43,10 +43,13 @@ class ToolbarUIView(
         .inflate(R.layout.layout_url_background, container, false)
 
     init {
-        val session = sessionId?.let { view.context.components.core.sessionManager.findSessionById(sessionId) }
-            ?: view.context.components.core.sessionManager.selectedSession
+        val sessionManager = view.context.components.core.sessionManager
+        val session = sessionId?.let { sessionManager.findSessionById(it) }
+            ?: sessionManager.selectedSession
 
         view.apply {
+            elevation = resources.pxToDp(TOOLBAR_ELEVATION).toFloat()
+
             setOnUrlCommitListener {
                 actionEmitter.onNext(SearchAction.UrlCommitted(it, sessionId, state?.engine))
             false
@@ -88,8 +91,10 @@ class ToolbarUIView(
             val isCustom = session?.isCustomTabSession() ?: false
 
             val menuToolbar = if (isCustom) {
-                CustomTabToolbarMenu(this,
-                    requestDesktopStateProvider = { session?.desktopMode ?: false },
+                CustomTabToolbarMenu(
+                    this,
+                    sessionManager,
+                    sessionId,
                     onItemTapped = { actionEmitter.onNext(SearchAction.ToolbarMenuItemTapped(it)) }
                 )
             } else {
@@ -103,6 +108,7 @@ class ToolbarUIView(
             toolbarIntegration = ToolbarIntegration(
                 this,
                 view,
+                container,
                 menuToolbar,
                 ShippedDomainsProvider().also { it.initialize(this) },
                 components.core.historyStorage,
@@ -114,19 +120,25 @@ class ToolbarUIView(
     }
 
     override fun updateView() = Consumer<SearchState> {
-        if (shouldUpdateEngineIcon(it)) {
-            updateEngineIcon(it)
+        var newState = it
+        if (shouldUpdateEngineIcon(newState)) {
+            updateEngineIcon(newState)
         }
 
         if (shouldClearSearchURL(it)) {
-            clearSearchURL()
+            newState = SearchState("", "", it.isEditing, it.engine, it.focused)
         }
 
-        if (shouldUpdateEditingState(it)) {
-            updateEditingState(it)
+        // Need to set edit mode if the url value was cleared
+        if (newState.focused || shouldClearSearchURL(it) || shouldUpdateEditingState(newState)) {
+            updateEditingState(newState)
         }
 
-        state = it
+        if (!newState.focused) {
+            view.clearFocus()
+        }
+
+        state = newState
     }
 
     private fun shouldUpdateEngineIcon(newState: SearchState): Boolean {
@@ -137,7 +149,7 @@ class ToolbarUIView(
         with(view.context) {
             val defaultEngineIcon = components.search.searchEngineManager.defaultSearchEngine?.icon
             val searchIcon = newState.engine?.icon ?: defaultEngineIcon
-            val draw = BitmapDrawable(searchIcon)
+            val draw = BitmapDrawable(resources, searchIcon)
             val iconSize =
                 containerView?.context!!.resources.getDimension(R.dimen.preference_icon_drawable_size).toInt()
             draw.setBounds(0, 0, iconSize, iconSize)
@@ -146,20 +158,25 @@ class ToolbarUIView(
     }
 
     private fun shouldClearSearchURL(newState: SearchState): Boolean {
-        return newState.engine != state?.engine && view.url == newState.query
-    }
+        with(view.context) {
+            val defaultEngine = this
+                .components
+                .search
+                .searchEngineManager
+                .defaultSearchEngine
 
-    private fun clearSearchURL() {
-        view.url = ""
-        view.editMode()
+            return (newState.engine != null && newState.engine != defaultEngine) ||
+                    (state?.engine != null && state?.engine != defaultEngine)
+        }
     }
 
     private fun shouldUpdateEditingState(newState: SearchState): Boolean {
-        return !engineDidChange(newState)
+        return !engineDidChange(newState) && (state?.isEditing != newState.isEditing)
     }
 
     private fun updateEditingState(newState: SearchState) {
         if (newState.isEditing) {
+            view.setSearchTerms(newState.searchTerm)
             view.url = newState.query
             view.editMode()
         } else {
@@ -172,6 +189,7 @@ class ToolbarUIView(
     }
 
     companion object {
+        private const val TOOLBAR_ELEVATION = 16
         private const val PROGRESS_BOTTOM = 0
         private const val PROGRESS_TOP = 1
         const val browserActionMarginDp = 8
